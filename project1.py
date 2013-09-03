@@ -1,13 +1,15 @@
 from numpy import *
 
 class Problem:
-	def __init__(self, v0=0.0, m=90., C_D=1.4, rho=1.0, A=0.5, g=9.81):
+	def __init__(self, v0=0.0, m=90., C_D=1.4, rho=1.0, A=0.7, g=9.81, C_D_p=1.8, A_p=44):
 		self.v0 = v0
 		self.m = m
 		self.C_D = C_D
 		self.rho = rho
 		self.A = A
 		self.g = g
+		self.C_D_p = C_D_p
+		self.A_p = A_p
 
 	def define_command_line_options(self, parser=None):
 		if parser is None:
@@ -43,7 +45,17 @@ class Problem:
 			'--g', '--gravity', type=float,
 			default=self.g, help='acceleration of gravity',
 			metavar='g')
+
+		parser.add_argument(
+			'--C_D_p', '--drag_coeff_parachute', type=float,
+			default=self.C_D_p, help='drag coefficient under canopy',
+			metavar='C_D_p')
         
+		parser.add_argument(
+			'--A_p', '--cross_section_parachute', type=float,
+			default=self.A_p, help='canopy size',
+			metavar='A_p')
+
 		return parser
 
 	def init_from_command_line(self, args):
@@ -53,7 +65,7 @@ class Problem:
 		b, c = self.b, self.v0
 		return b*t + c	
        
-	def source_term(self, t, b=2.0):
+	def source_term(self, t, b=1.0):
 		self.b = b
 		c = self.v0
 		a = self.C_D * self.rho * self.A / 2.
@@ -110,15 +122,45 @@ class Solver:
 		self.k += 1
 		self.v = v
 
-	def solve(self):
-		# Solve problem for t in (0, T]
+	def solve(self, parachute=False, t_p=60.):
+		# set initial velocity
 		self.v[0] = self.problem.v0 # initial velocity (m/s)
+		C_D, A = self.problem.C_D, self.problem.A
 
-		print self.dt, self.N-1
-		for i in range(self.N-1):
-			self.step()
+		if parachute:
+			# Number of free fall steps
+			P = int(ceil(t_p/self.dt))
+			
+			# Solve for free fall, t in (0, t_p]
+			for i in range(P):
+				self.step()
+			
+			# Deployment phase
+			D = int(ceil(5./self.dt)) # Number of deployment steps
+			dA = (self.problem.A_p - self.problem.A)/D
+			dC_D = (self.problem.C_D_p - self.problem.C_D)/D
+
+			for i in range(D):
+				self.problem.A += dA
+				self.problem.C_D += dC_D
+				self.step()
+
+			# Solve under canopy, t in (t_p, T]
+			for i in range(self.N-1-P-D):
+				self.step()
+		
+		else:
+			# Solve problem for t in (0, T]
+			for i in range(self.N-1):
+				self.step()
+
+		# Repack the parachute
+		self.problem.C_D, self.problem.A = C_D, A
 
 		return self.v, self.t
+
+	
+
 
 class Visualizer:
 	def __init__(self, problem, solver):
@@ -127,6 +169,7 @@ class Visualizer:
 		self.problem, self.solver = problem, solver
 
 	def plot(self, include_exact=False):
+		solver, problem = self.solver, self.problem
 		plt = self.plt
 
 		plt.plot(solver.t, solver.v)
@@ -138,6 +181,7 @@ class Visualizer:
 		plt.show()
 
 	def plot_error(self):
+		solver, problem = self.solver, self.problem
 		plt = self.plt
 
 		error = abs(solver.v - problem.exact_solution(solver.t))
@@ -151,16 +195,80 @@ class Visualizer:
 		plt.grid()
 		plt.show()
 
+	def plot_height(self, z0=3000.):
+		problem, solver = self.problem, self.solver
+		plt = self.plt
+		N, v, dt, t = solver.N, solver.v, solver.dt, solver.t
+
+		z = zeros(N)
+		z[0] = z0
+		for i in range(N-1):
+			z[i+1] = z[i] - v[i]*dt
+
+		plt.plot(t, z)
+		plt.xlabel(r'$t$ (s)', fontsize=16)
+		plt.ylabel(r'$z$ (m)', fontsize=16)
+		plt.title(r'Height above ground level')
+		plt.grid()
+		plt.show()
+
+	def plot_forces(self, plot=None):
+		solver, problem = self.solver, self.problem
+		plt = self.plt
+		
+		t = solver.t 
+		g = zeros(len(t)); g[:] = problem.m*problem.g
+		C_D, rho, A, v = problem.C_D, problem.rho, problem.A, solver.v
+		F_d = 0.5*C_D*rho*A*abs(v)*v
+
+		plt.plot(t, g/1000.)
+		plt.plot(t, F_d/1000.)
+		plt.xlabel(r'$t$ (s)', fontsize=16)
+		plt.ylabel(r'Forces (kN)', fontsize=16)
+		plt.title(r'Magnitude of forces', fontsize=16)
+		plt.legend(['$G$', '$F_D$'], 4)
+		plt.grid()
+		if plot:
+			plt.savefig(plot + '.pdf')
+		plt.show()
+
+		
 	def plot_exact(self):
+		solver, problem = self.solver, self.problem
 		plt = self.plt
 
 		plt.plot(solver.t, problem.exact_solution(solver.t))
 		plt.show()
 
+def test_mms():
+	import nose.tools as nt
+	problem = Problem()
+	solver = Solver(problem)
+
+	solver.solve()
+	diff = abs(solver.v - problem.exact_solution(solver.t)).max()
+	delta = 1E-14
+	nt.assert_almost_equal(diff, 0, delta=delta, msg='Testing MMS, v(t)=bt+c, delta=%e' % delta)
+
+
 # Example of use and testing
 if __name__ == '__main__':
 	problem = Problem()
+	solver = Solver(problem, dt=1e-4)
+	
+	parser = problem.define_command_line_options()
+	parser = solver.define_command_line_options(parser)
+	args = parser.parse_args()
+	problem.init_from_command_line(args)
+	solver.init_from_command_line(args)
+	
+	vis = Visualizer(problem, solver)
+	solver.solve()
+	vis.plot()
+	vis.plot_error()
+	
 
+	'''
 	Ep = 1
 	dtp = 1
 	for dt in [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]:
@@ -176,19 +284,13 @@ if __name__ == '__main__':
 		dtp = dt
 
 		print "dt = %g         E = %g      r = %g" % (dt, E, r)
-
-
 	'''
-	parser = problem.define_command_line_options()
-	parser = solver.define_command_line_options(parser)
-	args = parser.parse_args()
-	problem.init_from_command_line(args)
-	solver.init_from_command_line(args)
 	
-	vis = Visualizer(problem, solver)
-	solver.solve()
-	vis.plot()
-	vis.plot_error()
 	'''
-
+	problem = Problem()
+	solver = Solver(problem, dt=1e-4, T=180)
+	vis = Visualizer(problem, solver)
+	solver.solve(parachute=True)
+	vis.plot_height()
+	'''
 	
