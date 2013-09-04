@@ -18,8 +18,15 @@
 
 \usepackage{geometry}
 \geometry{headheight=0.01mm}
-\geometry{top=24mm, bottom=30mm, left=39mm, right=39mm}
+\geometry{top=24mm, bottom=29mm, left=39mm, right=39mm}
 
+\renewcommand{\arraystretch}{2}
+\setlength{\tabcolsep}{10pt}
+\makeatletter
+\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{#1}}
 %
 % Parametere for inkludering av kode fra fil
 %
@@ -66,12 +73,7 @@
 \newcommand{\Res}[2]{{\rm Res}(#1;#2)}
 \newcommand{\To}{\quad\Rightarrow\quad}
 \newcommand{\eps}{\epsilon}
-\makeatletter
-\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
-  \hskip -\arraycolsep
-  \let\@ifnextchar\new@ifnextchar
-  \array{#1}}
-\makeatother
+
 
 
 \newcommand{\bt}[1]{\boldsymbol{#1}}
@@ -81,8 +83,8 @@
 %
 % Navn og tittel
 %
-\author{Jonas van den Brink \\ \texttt{j.v.d.brink@fys.uio.no}}
-\title{Project 1 \\ INF5620}
+\author{Emilie Fjørner \\[-0.4cm] \texttt{e.s.fjorner@fys.uio.no} \\[0.2cm] Jonas van den Brink \\[-0.4cm] \texttt{j.v.d.brink@fys.uio.no}}
+\title{INF5620 --- Project 1}
 
 
 \begin{document}
@@ -91,17 +93,18 @@
 
 \section*{Description}
 
-In this project, we will develop a general solver for the vertical motion of a body with quadratic air drag. The solver will be verified and applied to a skydiver performing a parachute jump.
+In this project, we develop a general solver for the vertical motion of a body with quadratic air drag. The ability to reproduce a linear solution and the convergence rate solver is verified using the method of manufactured solutions. The solver is then applied to a skydiver performing a jump.
 
 
 \subsection*{Differential Equation}
-
-The falling skydiver is subject to two forces: gravity and air drag. Using a quadratic model for the air drag, and applying Newton's 2. law of motion gives the differential equation
+A falling body is subject to two forces: gravity and air drag. Using a quadratic model for the air drag and applying Newton's 2. law of motion gives the differen\-tial equation
 $$m\dot{v} = mg - \frac{1}{2}C_D \rho A |v| v,$$
-where $C_D$ is the body's drag coefficient, $\rho$ is the density of the air and $A$ is the cross-sectional area of the body perpendicular to the motion. All of these parameters will in reality vary during a skydive. The drag coefficient and cross-sectional area due to the skydiver changing posture and the density of the air as a function of height. Starting of, we will consider all three parameters as constant throughout the skydive.
+where $v$ is the downward velocity of the body, $C_D$ is the body's drag coefficient, $\rho$ is the density of the air and $A$ is the cross-sectional area of the body perpendicular to the motion. All of these parameters will in reality vary during a skydive. The drag coefficient and cross-sectional area due to the skydiver changing posture and the density of the air as a function of height. Starting of, we will consider all three parameters as constant throughout the skydive.
 
-To have a tider notation, we introduce the parameter $a \equiv C_D \rho A /2$, so our ODE can be written
-$$m\dot{v} = mg - a |v| v,$$
+To have a tidier notation, we introduce the parameter 
+$$a \equiv C_D \rho A /2,$$
+meaning our ODE can be written as
+$$m\dot{v} = mg - a |v| v.$$
 
 
 \subsection*{Numerical Scheme}
@@ -113,27 +116,70 @@ Solving for the unknown, $v^{n+1}$, gives the numerical scheme
 $$v^{n+1} = \frac{v^n + g \Delta t}{1 + a \Delta t |v^n|/m}.$$
 
 \subsection*{Method of Manufactured Solution}
-To apply the MMS, we must first include a source term in our ODE and numerical scheme. Naming the source term $f(t)$, we get the ODE
+To verify our solver, we apply the MMS. This means we include a source term to our ODE and numerical scheme. Naming the source term $f(t)$, we get the ODE
 $$m\dot{v} = mg - a |v| v + f(t).$$
+And the numerical scheme now looks as follows
+$$v^{n+1} = \frac{v^n + g \Delta t + \Delta t f(t_{n+1/2})/m}{1 + a  \Delta t |v^n|/m}.$$
 
 To test our solver, we will attempt to reproduce an exact solution on a linear form
 $$v(t) = bt + c,$$
-inserting this exact solution into the ODE gives
-$$mb = mg - a |bt + c| (bt + c) + f(t).$$
-We can now solve to find the source term, which yields
-$$f(t) = a |bt + c| (bt + c) + m(b-g).$$
-
-The source term also needs to be included in the numerical scheme, which now looks as follows
-$$v^{n+1} = \frac{v^n + g \Delta t + \Delta t f(t_{n+1/2})/m}{1 + a  \Delta t |v^n|/m}.$$
-
-
-
-
+where $b$ and $c$ are general constants. Insterting this exact solution into the discrete ODE gives
+$$\big[D_t (bt+c) = g - \frac{a}{m} \overline{(|bt+c|bt+c)}^t + \frac{1}{m}\overline{f(t)}^t\big]^{n+1/2}.$$
+The Crank-Nicolson finite difference approximation exactly reproduces the derivative of a linear function, we also use the geometric average. Solving for the source term then gives
+$$f(t_{n+1/2}) = a|bt_n + c|(b t_{n+1} + c) + m(b-g),$$
+shifting by a half time-step, we can write it
+$$f(t) = a|bt_{n-1/2} + c|(bt_{n+1/2} + c) + m(b-g).$$
+And we further rewrite it using the fact that $t_n = n\Delta t$
+$$f(t) = a\big|b(t-\Delta t/2) + c\big|\big(b(t+ \Delta t/2) + c\big) + m(b-g).$$
+Using this source term, and comparing with the exact solution $v(t) = bt+c$ should result in an error on the order of machine precision.
 
 
+\subsection*{Testing Convergence Rate}
+We are using a Crank Nicolson finite difference approximation, which is 2. order accurate. This means we should have an error that is close to proportional to $\Delta t^2$. To test this convergence rate, we need to have an exact solution to compare with. To find this exact solution, we again use the MMS. We cannot use the source term as earlier, as that already solves the discrete ODE to machine precision, it cannot possibly have an error proportional to $\Delta t$. Instead we insert our exact solution into the continous ODE and solve for the source term. The ODE becomes
+$$mb = mg - a|bt+c|(bt+c) + f(t),$$
+which yields
+$$f(t) = a|bt+c| (bt+c) + m(b-g).$$
+And it is this source term we use to test the convergence rate of the solver.
 
+The convergence rate is calculated using the numerical $L_2$-norm of the difference between the computed and the exact linear solution. 
+We assume that the error will follow a form such as
+$$E = C\Delta t ^r,$$
+where $r$ is the convergence rate. If we calculate the error $E$ for two different values of $\Delta t$, and divide them, we get
+$$\frac{E_i}{E_{i-1}} = \frac{C \Delta t_i^r}{C \Delta t_{i-1}^r},$$
+taking the logarithm gives
+$$\log E_i - \log E_{i-1} = r \big( \log \Delta t_i - \log \Delta t_{i-1}\big),$$
+and solving for the convergen rate we get
+$$r = \frac{\log E_i - \log E_{i-1}}{\log \Delta t_i - \log \Delta t_{i-1}}.$$
 
+\clearpage 
 
+\section*{Results of Verification}
+To test the ability of the numerical scheme to reproduce the linear solution with the source term fitted to the discrete ODE, we run the test for the exact solution $v(t)=2.3t + 3.9$, and get the following plot of the error.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{errorplot}
+\end{figure}
+
+And we see that we achieve machine precision.
+
+Testing the convergence rate for the exact solution $v(t)=3t$ gives the following results.
+\begin{center}
+\begin{tabular}{c |c| c}
+$\Delta t$ & $E$ & $r$ \\
+\hline
+$10^{-1}$ & 7.624395$\cdot10^{-04}$&  2.01564 \\
+$10^{-2}$ &7.599604$\cdot10^{-06}$&  2.00141 \\
+$10^{-3}$ &7.597157$\cdot10^{-08}$&  2.00014 \\
+$10^{-4}$ &7.598826$\cdot10^{-10}$&  1.9999 \\
+$10^{-5}$  & 7.535791$\cdot10^{-12}$&  2.00362
+\end{tabular}
+\end{center}
+And so we see that our solver has a convergence rate of 2 to one decimal place. For other exact solutions it might be slightly better or worse, but it is fairly close to $2$ for all linear solutions.
+
+\clearpage
+
+\section*{Simulating Skydiving}
 
 
 
