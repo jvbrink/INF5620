@@ -187,14 +187,7 @@ And so we see that our solver has a convergence rate of 2 to one decimal place. 
 
 To model a skydive we let the drag coefficient and the cross-sectional area change gradually in order to simulate the parachute opening. This we achieve by letting them be variables 
 defined at the mesh points. We keep their values constant for the part of the jump where the jumper is in free fall, and as the parachute is opened we increase their values
-gradually over a period of 8 seconds until they reach the appropriate values for a fully opened parachute. By making this stepwise increase we avoid the abrupt change in velocity an 
-instantaneous change would give. As a consequence our model becomes more realistic and our skydiver gets to experience a more pleasant (and far less deadly) jump, as shown in the plot 
-below iwhich llustrates the velocity as a function of time.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\textwidth]{fallrate}
-\end{figure}
+gradually over a period of 8 seconds until they reach the appropriate values for a fully opened parachute. 
 
 
 
