@@ -189,13 +189,19 @@ To model a skydive we let the drag coefficient and the cross-sectional area chan
 defined at the mesh points. We keep their values constant for the part of the jump where the jumper is in free fall, and as the parachute is opened we increase their values
 gradually over a period of 8 seconds until they reach the appropriate values for a fully opened parachute. By making this stepwise increase we avoid the abrupt change in velocity an 
 instantaneous change would give. As a consequence our model becomes more realistic and our skydiver gets to experience a more pleasant (and far less deadly) jump, as shown in the plot 
-below iwhich llustrates the velocity as a function of time.
+below which llustrates the velocity as a function of time.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{fallrate}
+\includegraphics[width=0.7\textwidth]{fallrate}
 \end{figure}
 
+If we plot the gravity force and air drag as functions of time for this simulation, we see that the opening produces a maximum g-force of slightly more than 3 $g$. In this month's issue of \emph{Parachutist}, (the official monthly publication of the United States Parachute Association) the maximum g-force experienced during a typical canopy deployment is said to fall between 3 and 5 g's. The value found therefore seems very reasonable.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.7\textwidth]{magnitudeofforces} 
+\end{figure}
 
 
 
