@@ -1,0 +1,8 @@
+ * You have written an extensive tex report, very good, but it was not required. Results are 
+   correct.
+ * Very good class based implementation.
+ * Ok use of docstrings, some more general comments would be good.
+ * Some things could have been done easier using less code. Remember DRY principle.
+ * In general everything looks good!
+
+Approved.
