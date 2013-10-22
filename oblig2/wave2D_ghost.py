@@ -16,8 +16,8 @@ class Solver():
 								u_t(x,y,0) = V(x,y)
 	"""
 
-	def __init__(self, I, V, q, Lx, Ly, Nx, Ny, dt, T, 
-						b=0.0, f=None, version="scalar"):
+	def __init__(self, I, V, q, Lx, Ly, Nx, Ny, dt, T, b,
+								 f=None, version="scalar"):
 		# Create the meshpoints with ghost points
 		dx = Lx/float(Nx)
 		dy = Ly/float(Ny)
@@ -32,17 +32,22 @@ class Solver():
 		hy = (dt/dx)**2
 		
     	# Set up initial conditions
-		if type(I)==np.ndarray: # what about the size?
+		if type(I)==np.ndarray:
 			u = I
 		else:
 			# Make sure I is callable
 			I = I if I else (lambda x, y: 0)
 			# Evaluate I in mesh points
-			u = np.zeros((x.size,y.size))
+			u = np.zeros((x.size, y.size))
 			for i in range(x.size):
 				for j in range(y.size):
 					u[i,j] = I(x[i],y[j])
-		
+		# Set values of ghost cells
+		u[0, :]  = u[2, :]
+		u[-1, :] = u[-3, :]
+		u[:, 0]  = u[:, 2]
+		u[:, -1] = u[:, -3]
+
 		if type(V) == np.ndarray:
 			v = V
 		else:
@@ -52,15 +57,29 @@ class Solver():
 			v = np.zeros((x.size,y.size))
 			for i in range(x.size):
 				for j in range(y.size):
-					v[i,j] = V(x[i],y[j])
+					v[i,j] = V(x[i], y[j])
+		# Set values of ghost cells
+		v[0, :]  = v[2, :]
+		v[:, 0]  = v[:, 2]
+		v[-1, :] = v[-3, :]
+		v[:, -1] = v[:, -3]
 
-		# Make sure source term is callable
+		# Calculting the negative time step by a backward difference:
+		up = u - dt*v
+
+		# Allow f to be None or 0
+		if f == None or f == 0:
+			if version == 'scalar':
+				f = lambda x, y, t: 0
+			elif version == 'vectorized':
+				f = lambda x, y, t: zeros((x.size, y.size))
+
 		f = f if f else (lambda x, y, t: 0)
 
-		# Make sure q is a numpy array of correct size
+		# Make q into a numpy array
 		q_array = zeros((x.size, y.size))
 		if type(q) == float or type(q) == int:
-			q_array[:,:] += q
+			q_array.fill(q)
 		else:
 			for i in xrange(x.size):
 				for j in xrange(y.size):
@@ -75,32 +94,19 @@ class Solver():
 		if version == "vectorized":
 			self.advance = self.advance_vectorized
 
-		# calculting the negative time step by a backward difference:
-		up = u-dt*v 
-
 		# Store values for later use
-		self.x = x
-		self.y = y
-		self.t = t
-		self.Ix = Ix
-		self.Iy = Iy
-		self.dx = dx
-		self.dy = dy
-		self.dt = dt
+		self.x, self.y, self.t = x, y, t
+		self.Ix, self.Iy = Ix, Iy
+		self.dx, self.dy, self.dt = dx, dy, dt
+		self.u, self.up = u, up
 		self.T = T
-		self.u = u
-		self.up = up
-		self.hx = hx
-		self.hy = hy
-		self.Nx = Nx
-		self.Ny = Ny
-		self.Nt = Nt
-		self.b = b
+		self.hx, self.hy = hx, hy
+		self.Nx, self.Ny, self.Nt = Nx, Ny, Nt
+		self.b = float(b)
 		self.q = q_array
 		self.f = f
 		self.n = 0
-		self.Lx = Lx
-		self.Ly = Ly
+		self.Lx, self.Ly = Lx, Ly
 
 
 	def advance(self):
@@ -114,12 +120,9 @@ class Solver():
 		n = self.n + 1
 		u = np.zeros((Nx+3, Ny+3))
 
-
 		# Updating the internal mesh points
-		#for i in Ix:  # i goes from 1 to Nx	
 		for i in xrange(1, self.Nx+2):
 			for j in xrange(1, self.Ny+2):
-			#for j in Iy: # j goes from 1 to Ny
 				u[i,j] = 2./(2+b*dt)*( 2*up[i,j] - (1-b*dt/2.)*upp[i,j] \
 					+ 0.5*hx*((q[i+1,j]+q[i,j])*(up[i+1,j]-up[i,j])		\
 						+ (q[i-1,j]+q[i,j])*(up[i-1,j]-up[i,j]))		\
@@ -147,155 +150,115 @@ class Solver():
 		Nx, Ny = self.Nx, self.Ny
 		u = np.zeros((Nx+3,Ny+3))
 
-
 		u[1:-1,1:-1] = 2./(2+b*dt)*(2*up[1:-1,1:-1]-(1-b*dt/2.)*upp[1:-1,1:-1] \
 			+ 0.5*hx*((q[2:,1:-1] + q[1:-1,1:-1])*(up[2:,1:-1]-up[1:-1,1:-1])
 				+ (q[0:-2,1:-1] + q[1:-1,1:-1])*(up[0:-2,1:-1]-up[1:-1,1:-1]))
 			+ 0.5*hy*((q[1:-1,2:]+q[1:-1,1:-1])*(up[1:-1,2:]-up[1:-1,1:-1]) 
 				+ (q[1:-1,0:-2]+q[1:-1,1:-1])*(up[1:-1,0:-2]-up[1:-1,1:-1]))
 			+ dt**2 * f(x[1:-1],y[1:-1],t[n]))
-		
-		# This fixes everything, so there is something wrong with
-		# the x-values close to the edge, is there something wrong with ghosts?
-		u[-2,1:-1] = up[-2,1:-1]
 
 		# Setting the ghost values for the next step: 
-		u[0, 1:-1] = u[2, 1:-1]
-		u[1:-1, 0] = u[1:-1, 2]
+		u[0, 1:-1]  = u[2, 1:-1]
+		u[1:-1, 0]  = u[1:-1, 2]
 		u[-1, 1:-1] = u[-3, 1:-1]
 		u[1:-1, -1] = u[1:-1, -3]
-
-
-		
+	
 		self.up = up
 		self.u = u
 		self.n = n
 
-	def solve(self):
+	def solve(self, plot=False):
 		T, dt = self.T, self.dt
 		n = int(ceil(T/dt))
 		for i in range(n):
 			self.advance()
 
-	def plot_u(self, show=True, save=False):
+	def get_mesh(self):
+		return self.x[1:-1], self.y[1:-1]
+
+	def get_solution(self):
+		return self.u[1:-1,1:-1].T
+
+
+class Plotter():
+	def __init__(self, solver):
+		self.solver = solver
+
+	def plot_u(self, show=False, save=False):
 		from mpl_toolkits.mplot3d import axes3d
 		import matplotlib.pyplot as plt
+		
+		solver = self.solver
+		X, Y = np.meshgrid(*solver.get_mesh())
+		while solver.n < solver.Nt:
+			print solver.n
+			solver.advance()
+			u = solver.get_solution()
+			fig = plt.figure()
+			ax = fig.add_subplot(111, projection='3d')
+			ax.plot_wireframe(X, Y, u, rstride=1, cstride=1)
+			ax.set_xlabel(r'$x$', fontsize=22)
+			ax.set_ylabel(r'$y$', fontsize=22)
+			ax.set_zlabel(r'$u$', fontsize=22)
+			ax.set_xlim(0, solver.Lx)
+			ax.set_ylim(0, solver.Ly)
+			#ax.set_zlim(0, 2)
+			if save:
+				plt.savefig("tmp/%s%04d.png" % (save, solver.n))
+				self.figname = save
+			if show:
+				plt.show()
+			plt.close()
 
-		X, Y = np.meshgrid(self.x[1:-1], self.y[1:-1])
 
-		fig = plt.figure()
-		ax = fig.add_subplot(111, projection='3d')
-		ax.plot_wireframe(X, Y, self.u[1:-1,1:-1].T, rstride=1, cstride=1)
-		ax.set_xlabel(r'$x$', fontsize=22)
-		ax.set_ylabel(r'$y$', fontsize=22)
-		ax.set_zlabel(r'$u$', fontsize=22)
-		ax.set_xlim(0, self.Lx)
-		ax.set_ylim(0, self.Ly)
-		#ax.set_zlim(0, 2)
-		if save:
-			plt.savefig("tmp/%s%04d.png" % (save, self.n))
-			self.figname = save
-		if show:
-			plt.show()
-		plt.close()
 
-	def make_animation(self):
-		try:
-			name = self.figname
-		except:
-			print "No figures saved, could not make animation."
-			return
-		import os
-		os.system("mencoder 'mf:/tmp/%s*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy -o %s.mpg" % (name,name))
-
-def test_constant(a=2.3, b=3.1, c=4.5, q=2.0):
+def test_constant(C=pi):
 	"""
-	Test the solver using MMS and a constant wave velocity q.
-	The source term f(x,y,t) is fitted to a constant exact solution
-	u_e(x,y) = ax**2 + by**2 + c. This solution should be reproduced
-	to machine precision. Implements a nose test.
+	Test the solver using constant solution, u_e=C. No source term
+	is then needed. Implements a nose test.
 	"""
 	import nose.tools as nt
 
-	a=1.5
-	b=0
+	def I(x, y):
+		return C
 
-	I = lambda x, y: a*x**3 + b*y**3 + c
-
-	def f(x, y, t):
-		field = zeros((x.size, y.size))
-		field.fill(-3*2.0*(a*x+b*x))
-		return field
-
-	V = 0
-	Lx = 3.
-	Ly = 6.
-	Nx = 8
-	Ny = 8
+	V = 0.
+	q = 2.
+	Lx = 5
+	Ly = 10
+	Nx = 40
+	Ny = 80
 	dt = 0.1
+	T = 10
+	b = 3.0
+	f = 0
+	version = 'vectorized'
+
+	for v in ["scalar", "vectorized"]:
+		solver = Solver(I,V,q,Lx,Ly,Nx,Ny,dt,T,b=b,f=f,version=version)
+		u_e = solver.get_solution()
+		solver.solve()
+		u = solver.get_solution()
+		diff = abs(u-u_e).max()
+		print diff
+		nt.assert_almost_equal(diff, 0, places=10)
+
+def test_gaussian():
+	V = 0
+	q = 20.0
+	Lx = 5
+	Ly = 10
+	I = lambda x, y: 2*exp(-(x-0.5*Lx)**2-(y-0.5*Ly)**2/2)
+	Nx = 40
+	Ny = 80
+	dt = 0.01
 	T = 1
-	version = "vectorized"
-
-	test = Solver(I, V, q, Lx, Ly, Nx, Ny, dt, T, b=b, f=f, version=version)
-
-	print test.u[1:-1,1:-1].T - I(test.x[1:-1],test.y[1:-1])
-
-	'''
-	print test.u[1:-1,1:-1] - 2./(2+b*dt)*(2*test.u[1:-1,1:-1]-(1-b*dt/2.)*test.up[1:-1,1:-1] \
-		+ 0.5*hx*((q[2:,1:-1]+q[1:-1,1:-1])*(test.u[2:,1:-1]-test.u[1:-1,1:-1])
-			+ (q[0:-2,1:-1]+q[1:-1,1:-1])*(test.u[0:-2,1:-1]-test.u[1:-1,1:-1]))
-		+ 0.5*hx*((q[1:-1,2:]+q[1:-1,1:-1])*(test.u[1:-1,2:]-test.u[1:-1,1:-1]) 
-			+ (q[1:-1,0:-2]+q[1:-1,1:-1])*(test.u[1:-1,0:-2]-test.u[1:-1,1:-1])) \
-		+ dt**2 * f(x[1:-1],y[1:-1],2))
-	'''
+	b = 2.0
+	version="vectorized"
 	
-	while test.n < test.Nt:
-		print test.u[1:-1,1:-1].T - I(test.x[1:-1],test.y[1:-1])
-		test.advance()
-		print test.n
-		test.plot_u(show=False, save='constant')
+	solver = Solver(I, V, q, Lx, Ly, Nx, Ny, dt, T, b=b, f=None, version=version)
+	plotter = Plotter(solver)
+	plotter.plot_u(save="gauss")
 
 test_constant()
 
-
-'''
-import sys
-sys.exit()
-
-
-V = 0
-q = 20.0
-Lx = 5
-Ly = 10
-I = lambda x, y: 2*exp(-(x-0.5*Lx)**2-(y-0.5*Ly)**2/2)
-Nx = 40
-Ny = 80
-dt = 0.01
-T = 1
-b = 2.0
-version="vectorized"
-test = Solver(I, V, q, Lx, Ly, Nx, Ny, dt, T, b=b, f=None, version=version)
-
-
-
-
-
-while test.n < test.Nt:
-	test.advance()
-	print test.n
-	fig = plt.figure()
-	ax = fig.add_subplot(111, projection='3d')
-	ax.plot_wireframe(X, Y, test.u[1:-1,1:-1].T, rstride=1, cstride=1)
-	ax.set_xlim(0, Lx)
-	ax.set_ylim(0, Ly)
-	ax.set_zlim(0,2)
-	ax.set_xlabel(r'$x$', fontsize=16)
-	ax.set_ylabel(r'$y$', fontsize=16)
-	ax.set_zlabel(r'$u$', fontsize=16)
-	plt.savefig("tmp/fig%04d.png" % test.n)
-	plt.close()
-
-os.system("mencoder 'mf://*.png' -mf type=png:fps=20 -ovc lavc -lavcopts " +
-	      "vcodec=wmv2 -oac copy -o test.mpg")
-
-'''

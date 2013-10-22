@@ -138,11 +138,20 @@ $$[D_tD_t u + bD_{2t}u = D_x \overline{q}^{x}D_x u + D_y \overline{q}^y D_y u + 
 Which written out and solved for $u_{i,j}^{n+1}$ gives the following numerical scheme
 \begin{align*}
 u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\frac{b\Delta t}{2}\bigg)u_{i,j}^{n-1} \\ 
-&\qquad + \frac{h_x}{2}\bigg(\big(q_{i+1,j}+q_{i,j}\big)\big(u_{i+1,j}^n-u_{i,j}^n\big) + \big(q_{i-1,j} + q_{i,j}^n\big)\big(u_{i-1,j}^n-u_{i,j}^n\big)\bigg) \\
-&\qquad + \frac{h_y}{2}\bigg(\big(q_{i,j+1}+q_{i,j}\big)\big(u_{i,j+1}^n-u_{i,j}^n\big) + \big(q_{i,j-1} + q_{i,j}^n\big)\big(u_{i,j-1}^n-u_{i,j}^n\big)\bigg) \\
+&\qquad + \frac{h_x}{2}\bigg(\big(q_{i+1,j}+q_{i,j}\big)\big(u_{i+1,j}^n-u_{i,j}^n\big) + \big(q_{i-1,j} + q_{i,j}\big)\big(u_{i-1,j}^n-u_{i,j}^n\big)\bigg) \\
+&\qquad + \frac{h_y}{2}\bigg(\big(q_{i,j+1}+q_{i,j}\big)\big(u_{i,j+1}^n-u_{i,j}^n\big) + \big(q_{i,j-1} + q_{i,j}\big)\big(u_{i,j-1}^n-u_{i,j}^n\big)\bigg) \\
 &\qquad + \Delta t^2 f(x_i, y_j, t_n) \bigg],
 \end{align*}
 where $h_x = \Delta t^2/\Delta x^2$.
+
+\subsection*{Testing the solver using constant solution}
+We can implement a test for the solver by fitting the source term to an exact solution
+$$u_e(x,y,t) = ax^2 + by^2 + c.$$
+Inserting this into our discrete equation gives
+$$[D_tD_t u_e + bD_{2t}u_e = D_x \overline{q}^{x}D_x u_e + D_y \overline{q}^y D_y u_e + f]^{n}_{i,j}.$$
+The central difference is able to exactly derivate a 2.\ order-polynomial so we have
+$$f^n_{i,j} = -q(a+b)
+
 
 
 \end{document}
