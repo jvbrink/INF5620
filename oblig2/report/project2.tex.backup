@@ -80,7 +80,10 @@
 \newcommand{\mat}[1]{\textsf{\textbf{#1}}}
 \newcommand{\I}{\boldsymbol{\mathcal{I}}}
 \newcommand{\p}{\partial}
+<<<<<<< HEAD
 \newcommand{\D}{\mbox{D}}
+=======
+>>>>>>> 13b8a0ea7f23c31e6e191de095cb081f01d0aff2
 %
 % Navn og tittel
 %
@@ -104,7 +107,11 @@ $$\frac{\p^2 u}{\p t^2} + b\frac{\p u}{\p t} = \frac{\p}{\p x}\bigg(q(x,y) \frac
 This is a two-dimensional, standard, linear wave equation, with damping. Here $q(x,y) = c^2$ is the wave velocity, which is generally a field. The constant $b$, is a damping factor, and $f(x,y,t)$ is a source term that will be used to verify our solver.
 
 We solve the equation on the spatial domain $\Omega = [0,L_x] \times [0,L_y]$, with a Neumann boundary condition
+<<<<<<< HEAD
 $$\frac{\p u}{\p n} = 0 \mbox{ on } \delta\Omega,$$
+=======
+$$\frac{\p u}{\p n} = 0,$$
+>>>>>>> 13b8a0ea7f23c31e6e191de095cb081f01d0aff2
 here $\p/\p n$ denotes the directional derivative out of the domain at the boundary.
 
 Our PDE also has the initial conditions
@@ -120,6 +127,7 @@ t_n &= n\Delta t, \mbox{ for } n=0,\ldots,N_t.
 We now evaluate our PDE in the point $(x_i, y_j, t_n)$ and introduce the shorthand notation
 $$u_{i,j}^n \equiv u(x_i, y_j, t_n).$$
 We will use central difference approximations for the time derivatives, meaning we have
+<<<<<<< HEAD
 $$\bigg[\frac{\p u}{\p t}\bigg]^n \approx \frac{u^{n+1} - 2u^n + u^{n-1}}{\Delta t^2} = \bigg[\D_t\D_t u\bigg]^n,$$
 and
 $$b\frac{\p u}{\p t} \approx b \frac{u^{n+1}-u^{n-1}}{2\Delta t} = \bigg[\D_{2t}u\bigg]^n.$$
@@ -128,6 +136,19 @@ $$\frac{\p \phi}{\p x} \approx \frac{\phi_{i+\frac{1}{2}} - \phi_{i-\frac{1}{2}}
 where we approximate $\phi_{i+\frac{1}{2}}$ and $\phi_{i-\frac{1}{2}}$, using a central difference yet again
 $$\phi_{i+1} = q_{i+\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i+\frac{1}{2}} \approx q_{i+\frac{1}{2}} \frac{u_{i+1} - u_{i}}{\Delta x} = [q\D_x u]_{i+\frac{1}{2}}.$$
 $$\phi_{i-1} = q_{i-\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i-\frac{1}{2}} \approx q_{i-\frac{1}{2}} \frac{u_{i} - u_{i-1}}{\Delta x} = [q\D_x u]_{i-\frac{1}{2}}.$$
+=======
+$$\bigg[\frac{\p^2 u}{\p t^2}\bigg]^n \approx \frac{u^{n+1} - 2u^n + u^{n-1}}{\Delta t^2} = \bigg[D_tD_t u\bigg]^n,$$
+and
+$$b\frac{\p u}{\p t} \approx b \frac{u^{n+1}-u^{n-1}}{2\Delta t} = \bigg[D_{2t}u\bigg]^n.$$
+
+\emph{Hvorfor har vi med b her? (Burde i såfall vært med i stste leddet og?}
+
+For the spatial derivatives, we first approximate the outer derivative using a central difference. In order to do this we first introduce $\phi \equiv q \p u/\p x$, and find
+$$\frac{\p \phi}{\p x} \approx \frac{\phi_{i+\frac{1}{2}} - \phi_{i-\frac{1}{2}}}{\Delta x} = [D_x \phi]_{i}.$$
+where we approximate $\phi_{i+\frac{1}{2}}$ and $\phi_{i-\frac{1}{2}}$, using a central difference yet again
+$$\phi_{i+1} = q_{i+\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i+\frac{1}{2}} \approx q_{i+\frac{1}{2}} \frac{u_{i+1} - u_{i}}{\Delta x} = [qD_x u]_{i+\frac{1}{2}}.$$
+$$\phi_{i-1} = q_{i-\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i-\frac{1}{2}} \approx q_{i-\frac{1}{2}} \frac{u_{i} - u_{i-1}}{\Delta x} = [qD_x u]_{i-\frac{1}{2}}.$$
+>>>>>>> 13b8a0ea7f23c31e6e191de095cb081f01d0aff2
 If we have access to a continous $q$, evaluating $q$ in $x_{i+\frac{1}{2}}$ is no problem, but we would also like to be able to use a discretized $q$ known only in the mesh points, so we approximate $q_{i+\frac{1}{2}}$ using an arithmetic mean
 $$q_{i+\frac{1}{2}} \approx \frac{q_{i+1} + q_i}{2}, \qquad q_{i-\frac{1}{2}} \approx \frac{q_{i} + q_{i-1}}{2}.$$
 Inserting this, we have
@@ -135,7 +156,11 @@ $$\bigg[\frac{\p}{\p x}\bigg(q\frac{\p u}{\p x}\bigg)\bigg]_i \approx \frac{1}{2
 And we just the exact same approximation for the other spatial derivative.
 
 Our discrete equation then becomes
+<<<<<<< HEAD
 $$[\D_t\D_t u + b\D_{2t}u = \D_x \overline{q}^{x}\D_x u + \D_y \overline{q}^y \D_y u + f]^{n}_{i,j}.$$
+=======
+$$[D_tD_t u + bD_{2t}u = D_x \overline{q}^{x}D_x u + D_y \overline{q}^y D_y u + f]^{n}_{i,j}.$$
+>>>>>>> 13b8a0ea7f23c31e6e191de095cb081f01d0aff2
 Which written out and solved for $u_{i,j}^{n+1}$ gives the following numerical scheme
 \begin{align*}
 u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\frac{b\Delta t}{2}\bigg)u_{i,j}^{n-1} \\ 
@@ -152,6 +177,7 @@ by inserting this solution into our discrete equation, we see that the source te
 $$f(x,y,t) = 0.$$
 We implement the test case as a nose test and verify that it succeeds.
 
+<<<<<<< HEAD
 \subsection*{Veryfing the solver using a seperable solution}
 We will verify our solver by attempting to reproduce a seperable exact solution
 $$u_e(x,y,t) = X(x)Y(y)T(t),$$
@@ -195,6 +221,9 @@ u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\fr
 &\qquad + \Delta t^2 f(x_i, y_j, t_n) \bigg],
 \end{align*}
 
+=======
+\subsection*{}
+>>>>>>> 13b8a0ea7f23c31e6e191de095cb081f01d0aff2
 
 
 
