@@ -123,7 +123,7 @@ $$\bigg[\frac{\p^2 u}{\p t^2}\bigg]^n \approx \frac{u^{n+1} - 2u^n + u^{n-1}}{\D
 and
 $$b\frac{\p u}{\p t} \approx b \frac{u^{n+1}-u^{n-1}}{2\Delta t} = \bigg[D_{2t}u\bigg]^n.$$
 
-\textit{Hvorfor har vi med b her? (Burde i såfall vært med i siste leddet og?}
+\emph{Hvorfor har vi med b her? (Burde i såfall vært med i stste leddet og?}
 
 For the spatial derivatives, we first approximate the outer derivative using a central difference. In order to do this we first introduce $\phi \equiv q \p u/\p x$, and find
 $$\frac{\p \phi}{\p x} \approx \frac{\phi_{i+\frac{1}{2}} - \phi_{i-\frac{1}{2}}}{\Delta x} = [D_x \phi]_{i}.$$
@@ -134,13 +134,10 @@ If we have access to a continous $q$, evaluating $q$ in $x_{i+\frac{1}{2}}$ is n
 $$q_{i+\frac{1}{2}} \approx \frac{q_{i+1} + q_i}{2}, \qquad q_{i-\frac{1}{2}} \approx \frac{q_{i} + q_{i-1}}{2}.$$
 Inserting this, we have
 $$\bigg[\frac{\p}{\p x}\bigg(q\frac{\p u}{\p x}\bigg)\bigg]_i \approx \frac{1}{2\Delta x^2}\bigg[\big(q_{i+1}+q_i\big)\big(u_{i+1}-u_i\big) + \big(q_{i-1} + q_i\big)\big(u_{i-1}-u_i\big)\bigg].$$
-And we use the exact same approximation for the other spatial derivative.
+And we just the exact same approximation for the other spatial derivative.
 
 Our discrete equation then becomes
 $$[D_tD_t u + bD_{2t}u = D_x \overline{q}^{x}D_x u + D_y \overline{q}^y D_y u + f]^{n}_{i,j}.$$
-
-\textit{Hvorfor er q-ene opphøyd i x/y istedetfor å ha det som subscript?}
-
 Which written out and solved for $u_{i,j}^{n+1}$ gives the following numerical scheme
 \begin{align*}
 u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\frac{b\Delta t}{2}\bigg)u_{i,j}^{n-1} \\ 
