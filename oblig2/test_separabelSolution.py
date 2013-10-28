@@ -11,49 +11,84 @@ def test_separabel(c=np.pi):
     import nose.tools as nt
 
     class CubicSolution(Problem):
-        def __init__(self, A, B, D, X, Y, T, dx, dy, Lx, Ly, q_const=2.0):
+        def __init__(self, A, B, D, dx, dy, Lx, Ly, q_const=2.0):
             self.A, self.B, self.D = A, B, D
-            self.dx, self.dy, self.Lx, self.Ly = dx, dy, Lx, Ly
-            self.X, self.Y, self.T = X, Y, T
+            self.dx, self.dy = dx, dy 
+            self.Lx, self.Ly = Lx, Ly
             self.q_const = q_const
             self.b = 0
 
+        def X(self, x):
+            A, Lx = self.A, self.Lx
+            return A*x**3 - 1.5*A*Lx*x**2
+
+        def Y(self, y):
+            B, Ly = self.B, self.Ly
+            return B*y**3 - 1.5*B*Ly*y**2
+
+        def T(self, t):
+            D = self.D
+            return D*t
+
+        def u_e(self, x, y, t):
+            X, Y, T = self.X, self.Y, self.T
+            return X(x)*Y(y)*T(t)
+
         def V(self, x, y):
-            return self.X(x)*self.Y(y)
+            X, Y = self.X, self.Y
+            return D*X(x)*Y(y)
 
         def f(self, x, y, t):
             A, B, D = self.A, self.B, self.D
-            dx, dy, Lx, Ly = self.dx, self.dy, self.Lx, self.Ly
             X, Y, T = self.X, self.Y, self.T
+            Lx, Ly = self.Lx, self.Ly
+            dx, dy = self.dx, self.dy
             q = self.q_const
+            
 
+            # Vector evaluated
+            if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+                # All mesh points
+                fx = A*(6*x[:,np.newaxis] - 3*Lx)*Y(y[np.newaxis,:])
+                fy = B*(6*y[np.newaxis,:] - 3*Ly)*X(x[:,np.newaxis])
+                f  = -q*(fx + fy) * T(t)
+                # Add extra contributions at boundaries
+                f[0,:]  -= 2*A*dx*q*Y(y[:])*T(t)
+                f[-1,:] += 2*A*dx*q*Y(y[:])*T(t)
+                f[:,0]  -= 2*B*dy*q*X(x[:])*T(t)
+                f[:,-1] += 2*B*dy*q*X(x[:])*T(t)
+            # Pointwise evaluated
+            else:
+                fx = A*(6*x - 3*Lx)*Y(y)
+                fy = B*(6*y - 3*Ly)*X(x)
+                f = -q*(fx + fy) * T(t)
+                # Add extra contributions at boundaries
+                tol = 1e-14
+                if abs(x-Lx) < tol:
+                    f -= 2*A*dx*q*Y(y)*T(t)
+                if abs(x) < tol:
+                    f += 2*A*dx*q*Y(y)*T(t)
+                if abs(y) < tol:
+                    f -= 2*B*dy*q*X(x)*T(t)
+                if abs(y-Ly) < tol:
+                    f += 2*B*dy*q*X(x)*T(t)
+            
+            return f
+
+
+            '''
             if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
                 # Array evaluation
                 # Evaluate all mesh points
                 f_a = - q*Y(y[np.newaxis,:])*T(t)*A*(6*x[:,np.newaxis]-3*Lx) \
                 - q*X(x[:,np.newaxis])*T(t)*B*(6*y[np.newaxis,:]-3*Ly)
-                # Add extra contributions at boundaries
+                
                 f_a[0,:]  += 2*q*Y(y[:])*T(t)*A*dx
                 f_a[-1,:] += -f_a[0,:]
                 f_a[:,0]  += 2*q*X(x[:])*T(t)*B*dy
                 f_a[:,-1] += -f_a[:,0]
                 return f_a
-            
-            else:
-                # Pointwise evaluation
-                f_v = -q*Y(y)*T(t)*A(6*x - 3*Lx) \
-                                    - q*X(x)*T(t)*B(6*y - 3*Ly)
-                # Add extra contributions at boundaries
-                tol = 1e-14
-                if abs(x-Lx) < tol:
-                    f_v += 2*q*Y(y)*T(t)*A*dx
-                if abs(x) < tol:
-                    f_v -= 2*q*Y(y)*T(t)*A*dx
-                if abs(y) < tol:
-                    f_v += 2*q*X(x)*T(t)*B*dy
-                if abs(y-Ly) < tol:
-                    f_v -= 2*q*X(x)*T(t)*B*dy
-                return f_v
+            '''
 
     Lx = 2
     Ly = 4
@@ -62,36 +97,33 @@ def test_separabel(c=np.pi):
     dx = Lx/float(Nx)
     dy = Ly/float(Ny)
     dt = 0.01
-    endT = 1
+    endT = 0.01
     q = 2.0
     b = 0.0
     A = 2.
     B = 2.
     D = 1.
-    Cx = 0.
-    Cy = 0.
 
-    X = lambda x: A*x**3 - 1.5*A*Lx*x**2 + Cx
-    Y = lambda y: B*y**3 - 1.5*B*Ly*y**2 + Cy
-    T = lambda t: D*t
-
-    problem = CubicSolution(A, B, D, X, Y, T, dx, dy, Lx, Ly)
+    problem = CubicSolution(A, B, D, dx, dy, Lx, Ly)
 
     print "Verifying solver for a cubic solution."
-    for v in ["vectorized"]:
+    for v in ["scalar", "vectorized"]:
         solver = Solver(problem, Lx, Ly, Nx, Ny, dt, endT, version=v)
         x, y = solver.get_mesh()
 
         while solver.n < solver.Nt:
             solver.advance()
-            x, y = solver.get_mesh()        
-            u_e = X(x[:,np.newaxis])*Y(y[np.newaxis,:])*T(solver.t[solver.n])
+            
+            u_e = problem.u_e(x[:,np.newaxis], y[np.newaxis,:], solver.t[solver.n])
             u = solver.get_solution()
 
-            plot_solution(x, y, u.T)
-            plot_solution(x, y, u_e.T)
+            #plot_solution(x, y, u)
+            #plot_solution(x, y, u_e)
 
+            #print u_e
             print abs(u-u_e).max()
+
+    
 
         '''
         solver.solve()

@@ -166,7 +166,7 @@ def plot_solution(x, y, u):
 	X, Y = np.meshgrid(x, y)
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
-	ax.plot_wireframe(X, Y, u, rstride=1, cstride=1)
+	ax.plot_wireframe(X, Y, u.T, rstride=1, cstride=1)
 	ax.set_xlabel(r'$x$', fontsize=22)
 	ax.set_ylabel(r'$y$', fontsize=22)
 	ax.set_zlabel(r'$u$', fontsize=22)
