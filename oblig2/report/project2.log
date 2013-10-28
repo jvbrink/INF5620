@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.1.17)  23 OCT 2013 09:42
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.1.17)  28 OCT 2013 11:59
 entering extended mode
  %&-line parsing enabled.
 **project2.tex
@@ -638,25 +638,25 @@ File: lstlang1.sty 2004/09/05 1.3 listings language file
 ) (./project2.aux)
 \openout1 = `project2.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 90.
-LaTeX Font Info:    ... okay on input line 90.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 90.
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 90.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 91.
+LaTeX Font Info:    ... okay on input line 91.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 91.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 91.
 
 (/usr/share/texmf-texlive/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 90.
+LaTeX Font Info:    ... okay on input line 91.
 
 (/usr/share/texmf-texlive/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
@@ -713,16 +713,16 @@ driver: pdftex
 (1in=72.27pt, 1cm=28.45pt)
 -----------------------
 \c@lstlisting=\count125
-LaTeX Font Info:    Try loading font information for U+msa on input line 91.
+LaTeX Font Info:    Try loading font information for U+msa on input line 92.
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 91.
+LaTeX Font Info:    Try loading font information for U+msb on input line 92.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
-LaTeX Font Info:    Try loading font information for T1+cmtt on input line 91.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 92.
 
 (/usr/share/texmf-texlive/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
@@ -730,31 +730,33 @@ File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2
 
-] [3] (./project2.aux) ) 
+] [3] [4] [5] (./project2.aux) ) 
 Here is how much of TeX's memory you used:
- 5514 strings out of 495061
- 69853 string characters out of 1182621
- 161216 words of memory out of 3000000
- 8604 multiletter control sequences out of 15000+50000
- 14766 words of font info for 45 fonts, out of 3000000 for 9000
+ 5518 strings out of 495061
+ 69903 string characters out of 1182621
+ 163216 words of memory out of 3000000
+ 8606 multiletter control sequences out of 15000+50000
+ 16238 words of font info for 47 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 27i,12n,40p,268b,258s stack positions out of 5000i,500n,10000p,200000b,50000s
- </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/
-ecbx1200.600pk> </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.
-600pk> </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </
-home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1200.600pk> </home/jvbr
-ink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </home/jvbrink/.texm
-f-var/fonts/pk/ljfour/jknappen/ec/ecrm1728.600pk></usr/share/texmf-texlive/font
-s/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texmf-texlive/fonts/type1/pub
-lic/amsfonts/cm/cmmi10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfont
-s/cm/cmmi8.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr10.p
-fb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/shar
-e/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-texli
-ve/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/ty
-pe1/public/amsfonts/cm/cmsy8.pfb>
-Output written on project2.pdf (3 pages, 135438 bytes).
+ 27i,12n,40p,417b,258s stack positions out of 5000i,500n,10000p,200000b,50000s
+ </home/jvbrink/.texmf-var/fonts/pk/ljfour/jkna
+ppen/ec/ecti1095.600pk> </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/e
+cbx1095.600pk> </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.6
+00pk> </home/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk> </h
+ome/jvbrink/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/jvbri
+nk/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1200.600pk> </home/jvbrink/.texmf
+-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600pk> </home/jvbrink/.texmf-var/font
+s/pk/ljfour/jknappen/ec/ecrm1728.600pk></usr/share/texmf-texlive/fonts/type1/pu
+blic/amsfonts/cm/cmex10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfon
+ts/cm/cmmi10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi8
+.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/s
+hare/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texmf-te
+xlive/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/t
+ype1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/type1/public
+/amsfonts/cm/cmsy8.pfb>
+Output written on project2.pdf (5 pages, 155867 bytes).
 PDF statistics:
- 216 PDF objects out of 1000 (max. 8388607)
+ 260 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -194,7 +194,7 @@ $$q\frac{2}{\Delta x} \D_{2x} u_e.$$
 The first order central difference does \emph{not} exactly reproduce a cubic polynomial, which is easy to show explicitly
 $$\D_{2x} x^3 = \frac{(x+\Delta x)^3 - (x-\Delta x)^3}{2\Delta x} = \frac{6x^2\Delta x + 2\Delta x^3}{2\Delta x} = 3x^2 + \Delta x^2.$$
 This error in the first order central difference must be added to the source term, so we add the contribution
-$$g_1 = -[q\frac{2}{\Delta x} \D_{2x} u_e]_{i,j}^n = -2qY_jT_n A \Delta x,$$
+$$g_1 = -[q\frac{2}{\Delta x} \D_{2x} u_e]_{i,j}^n = -qY_jT_n A \Delta x^2,$$
 at the boundary $x = 0$. Similar, slightly different, corrections have to be added at $x=L_x$ and $y=0$ and $y=L_y$.
 
 

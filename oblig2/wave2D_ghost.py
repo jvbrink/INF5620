@@ -157,9 +157,25 @@ class Solver():
 		return self.x[1:-1], self.y[1:-1]
 
 	def get_solution(self):
-		return self.u[1:-1,1:-1].T
+		return self.u[1:-1,1:-1]
 
-def plotSolutions(solver, show=False, save=False, zlim=None):
+def plot_solution(x, y, u):
+	from mpl_toolkits.mplot3d import axes3d
+	import matplotlib.pyplot as plt
+
+	X, Y = np.meshgrid(x, y)
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.plot_wireframe(X, Y, u, rstride=1, cstride=1)
+	ax.set_xlabel(r'$x$', fontsize=22)
+	ax.set_ylabel(r'$y$', fontsize=22)
+	ax.set_zlabel(r'$u$', fontsize=22)
+	#ax.set_xlim(0, solver.Lx)
+	#ax.set_ylim(0, solver.Ly)
+	plt.show()
+	plt.close()
+
+def plot_solutions(solver, show=False, save=False, zlim=None):
 	from mpl_toolkits.mplot3d import axes3d
 	import matplotlib.pyplot as plt
 	
@@ -171,7 +187,7 @@ def plotSolutions(solver, show=False, save=False, zlim=None):
 		u = solver.get_solution()
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
-		ax.plot_wireframe(X, Y, u, rstride=1, cstride=1)
+		ax.plot_wireframe(X, Y, u.T, rstride=1, cstride=1)
 		ax.set_xlabel(r'$x$', fontsize=22)
 		ax.set_ylabel(r'$y$', fontsize=22)
 		ax.set_zlabel(r'$u$', fontsize=22)
@@ -186,27 +202,27 @@ def plotSolutions(solver, show=False, save=False, zlim=None):
 			plt.show()
 		plt.close()
 
-
-def gaussianPeak():
-	class GaussianWithDamping(Problem):
-		def __init__(self, Lx, Ly, b):
-			self.Lx, self.Ly, self.b = Lx, Ly, b
-
-		def q(self,x,y):
-			return 20.0
-
-		def I(self,x,y):
-			Lx, Ly = self.Lx, self.Ly
-			return 2*np.exp(-(x-0.5*Lx)**2 - (y-0.5*Ly)**2/2)
-
-	Lx = 5
-	Ly = 10
-	Nx = 40
-	Ny = 80
-	dt = 0.01
-	T = 1
-	b = 2.0
-	version="vectorized"
-	problem = GaussianWithDamping(Lx, Ly, b)
-	solver = Solver(problem, Lx, Ly, Nx, Ny, dt, T, version=version)
-	plotSolutions(solver, save='test', zlim=2)
+def plot_error(solver, u_e, show=False, save=False, zlim=None):
+	from mpl_toolkits.mplot3d import axes3d
+	import matplotlib.pyplot as plt
+	
+	solver = solver
+	X, Y = np.meshgrid(*solver.get_mesh())
+	u = solver.get_solution()
+	e = abs(u-u_e)
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.plot_wireframe(X, Y, e.T, rstride=1, cstride=1)
+	ax.set_xlabel(r'$x$', fontsize=22)
+	ax.set_ylabel(r'$y$', fontsize=22)
+	ax.set_zlabel(r'$u$', fontsize=22)
+	ax.set_xlim(0, solver.Lx)
+	ax.set_ylim(0, solver.Ly)
+	if zlim:
+		ax.set_zlim(0, zlim)
+	if save:
+		plt.savefig("tmp/%s%04d.png" % (save, solver.n))
+		figname = save
+	if show:
+		plt.show()
+	plt.close()
