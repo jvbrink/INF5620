@@ -1,8 +1,8 @@
 from wave2D_ghost import *
 
-def test_separabel(c=np.pi):
+def test_separable(c=np.pi):
     """
-    Test the solver using a separabel exact solution on the form
+    Test the solver using a separable exact solution on the form
         u_e = X(x)Y(y)T(t)
     where X and Y are cubic polynomials, and T is a quadratic polynomial.
     With a constant wave velocity q, and no damping, b = 0.
@@ -65,9 +65,9 @@ def test_separabel(c=np.pi):
                 # Add extra contributions at boundaries
                 tol = 1e-14
                 if abs(x-Lx) < tol:
-                    f -= 2*A*dx*q*Y(y)*T(t)
-                if abs(x) < tol:
                     f += 2*A*dx*q*Y(y)*T(t)
+                if abs(x) < tol:
+                    f -= 2*A*dx*q*Y(y)*T(t)
                 if abs(y) < tol:
                     f -= 2*B*dy*q*X(x)*T(t)
                 if abs(y-Ly) < tol:
@@ -135,4 +135,4 @@ def test_separabel(c=np.pi):
 
 
 if __name__ == "__main__":
-    test_separabel()
+    test_separable()
