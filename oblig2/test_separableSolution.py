@@ -2,11 +2,7 @@ from wave2D_ghost import *
 
 def test_separable(c=np.pi):
     """
-<<<<<<< HEAD
-    Verify the solver with a separabel exact solution
-=======
-    Test the solver using a separable exact solution on the form
->>>>>>> 3d8bc57cd069e78e940e540b84d2c1bce792f800
+    Verify the solver with a separable exact solution
         u_e = X(x)Y(y)T(t)
     where
         X = Ax^3 - (3/2)*A*Lx*x**2
