@@ -2,11 +2,13 @@ from wave2D_ghost import *
 
 def test_separabel(c=np.pi):
     """
-    Test the solver using a separabel exact solution on the form
+    Verify the solver with a separabel exact solution
         u_e = X(x)Y(y)T(t)
-    where X and Y are cubic polynomials, and T is a quadratic polynomial.
-    With a constant wave velocity q, and no damping, b = 0.
-    Implements a nose test.
+    where
+        X = Ax^3 - (3/2)*A*Lx*x**2
+        Y = By^3 - (3/2)*B*Ly*y**2
+        T = D*t
+    Uses a constant wave velocity q, and no damping, b = 0.
     """
     import nose.tools as nt
 
@@ -90,15 +92,15 @@ def test_separabel(c=np.pi):
                 return f_a
             '''
 
-    Lx = 2
-    Ly = 4
-    Nx = 40
-    Ny = 80
+    Lx = 1
+    Ly = 1
+    Nx = 10
+    Ny = 10
     dx = Lx/float(Nx)
     dy = Ly/float(Ny)
     dt = 0.01
     endT = 0.01
-    q = 2.0
+    q = 1.2
     b = 0.0
     A = 2.
     B = 2.
@@ -112,17 +114,18 @@ def test_separabel(c=np.pi):
         x, y = solver.get_mesh()
 
         while solver.n < solver.Nt:
-            solver.advance()
             
-            u_e = problem.u_e(x[:,np.newaxis], y[np.newaxis,:], solver.t[solver.n])
+            solver.advance()
+            t = solver.t[solver.n]
+            u_e = problem.u_e(x[:,np.newaxis],y[np.newaxis,:],t)
             u = solver.get_solution()
 
             #plot_solution(x, y, u)
             #plot_solution(x, y, u_e)
 
             #print u_e
-            print abs(u-u_e).max()
-
+            diff = abs(u-u_e).max()
+            print diff
     
 
         '''
