@@ -1,7 +1,28 @@
 #!/usr/bin/env python
 
 import numpy as np
-from scitools.std import *
+#from scitools.std import *
+
+class Problem():
+	def __init__(self, b, q_const=1.0):
+		self.b = b
+		self.q_const = q_const
+
+	def f(self, x, y, t):
+		"""Source term"""
+		return 0.0
+
+	def I(self, x, y):
+		"""Initial condition, u(x,y,0)=I(x,y)"""
+		return 0.0
+
+	def V(self, x, y):
+		"""Initial velocity u_t(x,y,0)=V(x,y)"""
+		return 0.0
+
+	def q(self, x, y):
+		"""Wave velocity, q=c^2"""
+		return self.q_const
 
 class Solver():
 	"""
@@ -16,181 +37,192 @@ class Solver():
 								u_t(x,y,0) = V(x,y)
 	"""
 
-	def __init__(self, I, V, q, Lx, Ly, Nx, Ny, dt, T, b=0.0, f=None):
-		# Create the meshpoints with ghost points
+	def __init__(self, problem, Lx, Ly, Nx, Ny, dt, T, version="scalar"):
+		# Create spatial mesh including ghost points
 		dx = Lx/float(Nx)
 		dy = Ly/float(Ny)
-		x = np.linspace(-dx, Lx+dx, Nx+3) # x-dir
-		y = np.linspace(-dy, Ly+dy, Ny+3) # x-dir
-		Ix = range(1,x.size-1)
-		Iy = range(1,y.size-1)
-		
+		x = np.linspace(-dx, Lx+dx, Nx+3)
+		y = np.linspace(-dy, Ly+dy, Ny+3)
+		Ix = range(1, Nx+2)
+		Iy = range(1, Ny+2)
+
+		# Create time mesh
 		Nt = int(round(T/float(dt)))
-		t = np.linspace(0, Nt*dt, Nt+1) # time
-		hx = (dt/dx)**2
-		hy = (dt/dx)**2
-		
-    	# Set up initial conditions
-		if type(I)==np.ndarray: # what about the size?
-			u = I
-		else:
-			# Make sure I is callable
-			I = I if I else (lambda x, y: 0)
-			# Evaluate I in mesh points
-			u = np.zeros((x.size,y.size))
-			for i in range(x.size):
-				for j in range(y.size):
-					u[i,j] = I(x[i],y[j])
-		
-		if type(V) == np.ndarray:
-			v = V
-		else:
-			# Make sure V is callable
-			V = V if V else (lambda x, y: 0)
-			# Evaluate V in mesh points
-			v = np.zeros((x.size,y.size))
-			for i in range(x.size):
-				for j in range(y.size):
-					v[i,j] = V(x[i],y[j])
+		t = np.linspace(0, Nt*dt, Nt+1)
 
-		# Make sure source term is callable
-		f = f if f else (lambda x, y, t: 0)
+		# Set up inital conditions
+		u = np.zeros((Nx+3, Ny+3))
+		v = np.zeros((Nx+3, Ny+3))
+		for i in Ix:
+			for j in Iy:
+				u[i,j] = problem.I(x[i],y[j])
+				v[i,j] = problem.V(x[i],y[j])
 
-		# Make sure q is a numpy array of correct size
-		q_array = zeros((x.size, y.size))
-		if type(q) == float or type(q) == int:
-			q_array[:,:] += q
-		else:
-			for i in xrange(x.size):
-				for j in xrange(y.size):
-					q_array[i,j] = q(x[i],y[j])
-			# Set q-values of ghost cells, assuming dq/dn=0 at boundary
-			q_array[0,:] = q_array[2,:]
-			q_array[:,0] = q_array[:,2]
-			q_array[-1,:] = q_array[-3,:]
-			q_array[:,-1] = q_array[:,-3]
+		# Set values of ghost cells
+		u[0, :] = u[2, :]; u[-1,:] = u[-3,:]
+		u[:, 0] = u[:, 2]; u[:,-1] = u[:,-3]
+		v[0, :] = v[2, :]; v[:, 0] = v[:, 2]
+		v[-1,:] = v[-3,:]; v[:,-1] = v[:,-3]
 
+		# Calculting the negative time step by a backward difference:
+		up = u - dt*v
 
-		# calculting the negative time step by a backward difference:
-		up = u-dt*v 
+		# Make q into npdarray
+		q = np.zeros((Nx+3,Ny+3))
+		for i in Ix:
+			for j in Iy:
+				q[i,j] = problem.q(x[i],y[j])
+		# Set q-values of ghost cells, assuming dq/dn=0 at boundary
+		q[0, :] = q[2, :]; q[:, 0] = q[:,2]
+		q[-1,:] = q[-3,:]; q[:,-1] = q[:,-3]
+
+		# Select version
+		if version == "vectorized":
+			self.advance = self.advance_vectorized
 
 		# Store values for later use
-		self.x = x
-		self.y = y
-		self.t = t
-		self.Ix = Ix
-		self.Iy = Iy
-		self.dx = dx
-		self.dy = dy
-		self.dt = dt
-		self.u = u
-		self.up = up
-		self.hx = hx
-		self.hy = hy
-		self.Nx = Nx
-		self.Ny = Ny
-		self.Nt = Nt
-		self.b = b
-		self.q = q_array
-		self.f = f
+		self.x, self.y, self.t = x, y, t
+		self.Ix, self.Iy = Ix, Iy
+		self.dx, self.dy, self.dt = dx, dy, dt
+		self.u, self.up = u, up
+		self.T = T
+		self.Nx, self.Ny, self.Nt = Nx, Ny, Nt
+		self.Lx, self.Ly = Lx, Ly
+		self.b = problem.b
+		self.q = q
+		self.f = problem.f
 		self.n = 0
-
 
 	def advance(self):
 		up, upp = self.u, self.up
 		x, y, t = self.x, self.y, self.t
-		Ix, Iy = self.Ix,self.Iy
-		hx, hy = self.hx, self.hy
-		Nx, Ny, Nt = self.Nx, self.Ny, self.Nt
-		dx, dy, dt = self.dx, self.dy, self.dt
+		Ix, Iy = self.Ix, self.Iy
+		hx, hy = self.dt**2/self.dx**2, self.dt**2/self.dy**2
 		b, q, f = self.b, self.q, self.f
-		n = self.n + 1
-		u = np.zeros((Nx+3, Ny+3))
-
-
-		# Updating the internal mesh points
-		#for i in Ix:  # i goes from 1 to Nx	
-		for i in xrange(1, self.Nx+2):
-			for j in xrange(1, self.Ny+2):
-			#for j in Iy: # j goes from 1 to Ny
-				u[i,j] = 2./(2+b*dt)*( 2*up[i,j] - (1-b*dt/2.)*upp[i,j] \
-					+ 0.5*hx*((q[i+1,j]+q[i,j])*(up[i+1,j]-up[i,j])		\
+		dt = self.dt
+		
+		n = self.n+1
+		u = np.zeros(up.shape)
+		for i in Ix:
+			for j in Iy:
+				# Updating the internal mesh points
+				u[i,j] = 2./(2+b*dt)*(2*up[i,j] - (1-b*dt/2.)*upp[i,j] 	\
+					+ 0.5*hx*((q[i+1,j]+q[i,j])*(up[i+1,j]-up[i,j])	   	\
 						+ (q[i-1,j]+q[i,j])*(up[i-1,j]-up[i,j]))		\
 					+ 0.5*hx*((q[i,j+1]+q[i,j])*(up[i,j+1]-up[i,j]) 	\
 						+ (q[i,j-1]+q[i,j])*(up[i,j-1]-up[i,j]))		\
-					+ dt**2 * f(x[i],y[j],t[n]))
-				
-				# Setting the ghost values for the next step: 
-				u[0,j]  = u[2,j]  
-				u[i,0]  = u[i,2]  
-				u[-1,j] = u[-3,j] 
-				u[i,-1] = u[i,-3] 
-				
+					+ dt**2*f(x[i],y[j],t[n]))
+
+				# Updating ghost values
+				u[0, j] = u[2, j]; u[i, 0] = u[i, 2]  
+				u[-1,j] = u[-3,j]; u[i,-1] = u[i,-3] 
+
 		self.up = up
 		self.u = u
 		self.n = n
 
-	def solve(self):
-		n = int(ceil(T/dt))
+	def advance_vectorized(self):
+		up, upp = self.u, self.up
+		x, y, t = self.x, self.y, self.t
+		hx, hy = self.dt**2/self.dx**2, self.dt**2/self.dy**2
+		dt = self.dt
+		b, q, f = self.b, self.q, self.f
+		
+		n = self.n + 1
+		u = np.zeros(up.shape)
+
+		# Updating the internal mesh points
+		u[1:-1,1:-1] = 2./(2+b*dt)*(2*up[1:-1,1:-1]-(1-b*dt/2.)*upp[1:-1,1:-1] \
+			+ 0.5*hx*((q[2:,1:-1] + q[1:-1,1:-1])*(up[2:,1:-1]-up[1:-1,1:-1])
+				+ (q[0:-2,1:-1] + q[1:-1,1:-1])*(up[0:-2,1:-1]-up[1:-1,1:-1]))
+			+ 0.5*hy*((q[1:-1,2:]+q[1:-1,1:-1])*(up[1:-1,2:]-up[1:-1,1:-1]) 
+				+ (q[1:-1,0:-2]+q[1:-1,1:-1])*(up[1:-1,0:-2]-up[1:-1,1:-1]))
+			+ dt**2 * f(x[1:-1],y[1:-1],t[n]))
+
+		# Updating ghost cells
+		u[0, 1:-1] = u[2, 1:-1]; u[1:-1, 0] = u[1:-1, 2]
+		u[-1,1:-1] = u[-3,1:-1]; u[1:-1,-1] = u[1:-1,-3]
+	
+		self.up = up
+		self.u = u
+		self.n = n
+
+	def solve(self, plot=False):
+		T, dt = self.T, self.dt
+		n = int(np.ceil(T/dt))
 		for i in range(n):
-			advance()
+			self.advance()
 
+	def get_mesh(self):
+		return self.x[1:-1], self.y[1:-1]
 
-V = 0
-q = 20.0
-Lx = 5
-Ly = 10
-I = lambda x, y: 2*exp(-(x-0.5*Lx)**2-(y-0.5*Ly)**2/2)
-Nx = 40
-Ny = 80
-dt = 0.01
-T = 2
-test = Solver(I, V, q, Lx, Ly, Nx, Ny, dt, T, b=0., f=None)
+	def get_solution(self):
+		return self.u[1:-1,1:-1]
 
-from mpl_toolkits.mplot3d import axes3d
-import matplotlib.pyplot as plt
-import numpy as np
+def plot_solution(x, y, u):
+	from mpl_toolkits.mplot3d import axes3d
+	import matplotlib.pyplot as plt
 
-
-X, Y = np.meshgrid(test.x[1:-1], test.y[1:-1])
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_wireframe(X, Y, test.u[1:-1,1:-1].T, rstride=1, cstride=1)
-ax.set_xlim(0, Lx)
-ax.set_ylim(0, Ly)
-ax.set_zlim(0, 2)
-plt.show()
-#plt.savefig("tmp/fig%04d.png" % test.n)
-
-print test.x[1], test.y[1]
-
-
-while test.n < test.Nt:
-	test.advance()
-	print test.n
+	X, Y = np.meshgrid(x, y)
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
-	ax.plot_wireframe(X, Y, test.u[1:-1,1:-1].T, rstride=1, cstride=1)
-	ax.set_xlim(0, Lx)
-	ax.set_ylim(0, Ly)
-	ax.set_zlim(0,2)
-	plt.savefig("tmp/fig%04d.png" % test.n)
+	ax.plot_wireframe(X, Y, u.T, rstride=1, cstride=1)
+	ax.set_xlabel(r'$x$', fontsize=22)
+	ax.set_ylabel(r'$y$', fontsize=22)
+	ax.set_zlabel(r'$u$', fontsize=22)
+	#ax.set_xlim(0, solver.Lx)
+	#ax.set_ylim(0, solver.Ly)
+	plt.show()
+	plt.close()
 
+def plot_solutions(solver, show=False, save=False, zlim=None):
+	from mpl_toolkits.mplot3d import axes3d
+	import matplotlib.pyplot as plt
+	
+	solver = solver
+	X, Y = np.meshgrid(*solver.get_mesh())
+	while solver.n < solver.Nt:
+		print solver.n
+		solver.advance()
+		u = solver.get_solution()
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+		ax.plot_wireframe(X, Y, u.T, rstride=1, cstride=1)
+		ax.set_xlabel(r'$x$', fontsize=22)
+		ax.set_ylabel(r'$y$', fontsize=22)
+		ax.set_zlabel(r'$u$', fontsize=22)
+		ax.set_xlim(0, solver.Lx)
+		ax.set_ylim(0, solver.Ly)
+		if zlim:
+			ax.set_zlim(0, zlim)
+		if save:
+			plt.savefig("tmp/%s%04d.png" % (save, solver.n))
+			figname = save
+		if show:
+			plt.show()
+		plt.close()
 
-"""
-plt.pcolor(test.x, test.y, test.u.T)
-plt.axis([0,Lx,0,Ly])
-plt.colorbar()
-plt.savefig("tmp/fig%s.png" % str(test.n))
-
-while test.n < test.Nt:
-	test.advance()
-	plt.pcolor(test.x, test.y, test.u.T)
-	plt.axis([0,Lx,0,Ly])
-	plt.savefig("tmp/fig%s.png" % str(test.n))
-	print test.n
-"""
-
-#os.system("mencoder 'mf://*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy -o test.mpg")
-
+def plot_error(solver, u_e, show=False, save=False, zlim=None):
+	from mpl_toolkits.mplot3d import axes3d
+	import matplotlib.pyplot as plt
+	
+	solver = solver
+	X, Y = np.meshgrid(*solver.get_mesh())
+	u = solver.get_solution()
+	e = abs(u-u_e)
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.plot_wireframe(X, Y, e.T, rstride=1, cstride=1)
+	ax.set_xlabel(r'$x$', fontsize=22)
+	ax.set_ylabel(r'$y$', fontsize=22)
+	ax.set_zlabel(r'$u$', fontsize=22)
+	ax.set_xlim(0, solver.Lx)
+	ax.set_ylim(0, solver.Ly)
+	if zlim:
+		ax.set_zlim(0, zlim)
+	if save:
+		plt.savefig("tmp/%s%04d.png" % (save, solver.n))
+		figname = save
+	if show:
+		plt.show()
+	plt.close()
