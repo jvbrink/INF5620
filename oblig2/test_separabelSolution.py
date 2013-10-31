@@ -1,8 +1,12 @@
 from wave2D_ghost import *
 
-def test_separabel(c=np.pi):
+def test_separable(c=np.pi):
     """
+<<<<<<< HEAD
     Verify the solver with a separabel exact solution
+=======
+    Test the solver using a separable exact solution on the form
+>>>>>>> 3d8bc57cd069e78e940e540b84d2c1bce792f800
         u_e = X(x)Y(y)T(t)
     where
         X = Ax^3 - (3/2)*A*Lx*x**2
@@ -67,9 +71,9 @@ def test_separabel(c=np.pi):
                 # Add extra contributions at boundaries
                 tol = 1e-14
                 if abs(x-Lx) < tol:
-                    f -= 2*A*dx*q*Y(y)*T(t)
-                if abs(x) < tol:
                     f += 2*A*dx*q*Y(y)*T(t)
+                if abs(x) < tol:
+                    f -= 2*A*dx*q*Y(y)*T(t)
                 if abs(y) < tol:
                     f -= 2*B*dy*q*X(x)*T(t)
                 if abs(y-Ly) < tol:
@@ -138,4 +142,4 @@ def test_separabel(c=np.pi):
 
 
 if __name__ == "__main__":
-    test_separabel()
+    test_separable()

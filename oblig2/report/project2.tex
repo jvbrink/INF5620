@@ -130,9 +130,10 @@ For the spatial derivatives, we first approximate the outer derivative using a c
 $$\frac{\p \phi}{\p x} \approx \frac{\phi_{i+\frac{1}{2}} - \phi_{i-\frac{1}{2}}}{\Delta x} = [D_x \phi]_{i}.$$
 
 where we approximate $\phi_{i+\frac{1}{2}}$ and $\phi_{i-\frac{1}{2}}$, using a central difference yet again
-$$\phi_{i+1/2} = q_{i+\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i+\frac{1}{2}} \approx q_{i+\frac{1}{2}} \frac{u_{i+1} - u_{i}}{\Delta x} = [q\D_x u]_{i+\frac{1}{2}}.$$
-$$\phi_{i-1/2} = q_{i-\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i-\frac{1}{2}} \approx q_{i-\frac{1}{2}} \frac{u_{i} - u_{i-1}}{\Delta x} = [q\D_x u]_{i-\frac{1}{2}}.$$
-If we have access to a continous $q$, evaluating $q$ in $x_{i+\frac{1}{2}}$ is no problem, but we would also like to be able to use a discretized $q$ known only in the mesh points, so we approximate $q_{i+\frac{1}{2}}$ using an arithmetic mean
+$$\phi_{i+\frac{1}{2}} = q_{i+\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i+\frac{1}{2}} \approx q_{i+\frac{1}{2}} \frac{u_{i+1} - u_{i}}{\Delta x} = [q\D_x u]_{i+\frac{1}{2}}.$$
+$$\phi_{i-\frac{1}{2}} = q_{i-\frac{1}{2}}\bigg[\frac{\p \phi}{\p x}\bigg]_{i-\frac{1}{2}} \approx q_{i-\frac{1}{2}} \frac{u_{i} - u_{i-1}}{\Delta x} = [q\D_x u]_{i-\frac{1}{2}}.$$
+If we have access to a continous $q$, evaluating $q$ in $x_{i+\frac{1}{2}}$ is no problem, but we would also like to be able to use a discretized $q$ known only in the mesh points, 
+so we approximate $q_{i+\frac{1}{2}}$ using an arithmetic mean
 $$q_{i+\frac{1}{2}} \approx \frac{q_{i+1} + q_i}{2}, \qquad q_{i-\frac{1}{2}} \approx \frac{q_{i} + q_{i-1}}{2}.$$
 Inserting this, we have
 $$\bigg[\frac{\p}{\p x}\bigg(q\frac{\p u}{\p x}\bigg)\bigg]_i \approx \frac{1}{2\Delta x^2}\bigg[\big(q_{i+1}+q_i\big)\big(u_{i+1}-u_i\big) + \big(q_{i-1} + q_i\big)\big(u_{i-1}-u_i\big)\bigg].$$
@@ -151,6 +152,82 @@ u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\fr
 \end{align*}
 where $h_x = \Delta t^2/\Delta x^2$.
 
+\subsection*{Finding the truncation error}
+We want to find the truncation error, meaning the residual, R, in our discrete equation:
+
+$$[\D_t\D_t u_e + b\D_{2t}u_e = \D_x \overline{q}^{x}\D_x u_e + \D_y \overline{q}^y \D_y u_e + f+ R]^{n}_{i,j}.$$
+
+In order to do this we need to find the truncation error in the terms 
+
+$$[\D_x \overline{q}^{x}\D_x u_e]^{n}_{i,j}, \qquad [\D_y \overline{q}^y \D_y u_e]^{n}_{i,j}$$
+
+First we write out the outer opearator, and get
+
+$$[\D_x \overline{q}^{x}\D_x u_e]^{n}_{i,j} = \frac{1}{\Delta x}\big([\overline{q}^{x}\D_x u_e]^n_{i+\frac{1}{2},j} - [\overline{q}^{x}\D_x u_e]^n_{i-\frac{1}{2},j}\big)$$
+
+Using 
+\begin{equation}\label{eq:Dx}
+ [\D_xu_e]^n_{i,j} = u_{e,x}(x_i,y_j,t_n) + R_i, \qquad R_i = \frac{1}{24}u_{e,xxx}(x_i,y_j,t_n)\Delta x^2+ \mathcal{O}(\Delta x^4)
+\end{equation}
+and
+\begin{equation}\label{eq:arithmetic}
+ [\overline{q}^{x}]_{i,j} = q(x_i,y_j) + R_i, \qquad R_i = \frac{1}{8} q_{xx}(x_i,y_j) \Delta x^2 + \mathcal{O}(\Delta x^4
+\end{equation}
+
+
+on this expression we get
+
+\begin{align*}
+[\D_xu_e]^n_{i+\frac{1}{2},j} &= u_{e,x}(t_n,x_{i+\frac{1}{2}},y_j) + \frac{1}{24}e_{e,xxx}(t_n,x_{i+\frac{1}{2}},y_j)\Delta x^2 + \mathcal{O}(\Delta x^4), \\ 
+[\overline{q}^x]_{i+\frac{1}{2},j} &= q(x_{i+\frac{1}{2}},y_j) + \frac{1}{8}q_{xx}(x_{i+\frac{1}{2}},y_j)\Delta x^2 + \mathcal{O}(\Delta x^4).
+\end{align*}
+
+Which gives us
+\begin{align*}
+[\overline{q}^x\D_xu_e]^n_{i+\frac{1}{2},j} &= [\overline{q}^x]_{i+\frac{1}{2},j} x [\D_xu_e]^n_{i+\frac{1}{2},j} \\
+&=q(x_{i+\frac{1}{2}},y_j)u_{e,x}(x_{i+\frac{1}{2}},y_j,t_n)+q(x_{i+\frac{1}{2}},y_j)\frac{1}{24}u_{e,xxx}(x_{i+\frac{1}{2}},y_j,t_n)\Delta x^2 \\
+&\qquad + \frac{1}{8}q_{xx}(x_{i+\frac{1}{2}},y_j)u_{e,x}(x_{i+\frac{1}{2}},y_j,t_n)\Delta x^2 + \mathcal{O}(\Delta x^4)\\
+&= [qu_{e,x}]^n_{i+\frac{1}{2},j} + G^n_{i+\frac{1}{2},j}\Delta x^2 + \mathcal{O}(\Delta x^4)
+\end{align*}
+
+where
+
+$$G^n_{i+\frac{1}{2}} = \frac{1}{24}{u_{e, xxx}}(x_{i+\frac{1}{2}},y_j,t_n)q(x_{i+\frac{1}{2},y_j}) + \frac{1}{8}{u_{e, x}}(x_{i+\frac{1}{2}},y_j,t_n)
+q_{xx}(x_{i+\frac{1}{2},y_j}).$$
+
+In the same way we find
+
+$$[\overline{q}^x\D_xu_e]^n_{i-\frac{1}{2},j} = [qu_{e,x}]^n_{i-\frac{1}{2},j} + G^n_{i-\frac{1}{2},j}\Delta x^2 + \mathcal{O}(\Delta x^4).$$
+
+Inserting these results gives us
+\begin{align*}
+ [\D_x\overline{q}^x\D_xu_e]^n_{i,j} &= \frac{1}{\Delta x}\bigg([qu_{e,x}]^n_{i+\frac{1}{2},j} + 
+ G^n_{i+\frac{1}{2},j}\Delta x^2-[qu_{e,x}]^n_{i-\frac{1}{2},j} - G^n_{i-\frac{1}{2},j}\Delta x^2 + \mathcal{O}(\Delta x^4)\bigg)\\
+ &= [\D_xqu_{e,x}]^n_{i,j} + [\D_xG]^n_{i,j}\Delta x^2 + \mathcal{O}(\Delta x^4)
+\end{align*}
+
+Using \ref{eq:Dx} we can write out the first and the second term as
+
+$$ [\D_xqu_{e,x}]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \frac{1}{24}(qu_{e,x})_{xxx}(x_i,y_j,t_n)\Delta x^2 + \mathcal{O}(\Delta x^4)$$
+$$ [\D_xG]^n_{i,j}\Delta x^2 = G_x(x_i,y_j,t_n)\Delta x^2 + \frac{1}{24} G_{xxx}(x_i,y_j,t_n)\Delta x^4 + \mathcal{O}(\Delta x^4) $$
+
+
+There will be several terms with the factor $$\Delta x^2$$ so we collect these into a term $$\mathcal{O}(\Delta x^2$$
+
+$$[\D_x\overline{q}^x\D_xu_e]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \mathcal{O}(\Delta x^2)$$
+
+In the same way we find
+
+$$[\D_y\overline{q}^y\D_yu_e]^n_{i,j} = \frac{\p}{\p y}q(x_i,y_j)u_{e,y}(x_i,y_j,t_n) + \mathcal{O}(\Delta y^2).$$
+
+This result, together with the errors in the time derivatives;
+$$\lbrack D_tD_t u_e \rbrack^n = u_{e,tt}(x_i,y_j,t_n) + R^n, \qquad R^n = \frac{1}{12}u_{e,tttt}(x_i,y_j,t_n)\Delta t^2 + {\mathcal{O}(\Delta t^4)}$$
+$$\lbrack D_{2t}u_e \rbrack^n = u_{e,t}(x_i,y_j,t_n) + R^n, \qquad R^n = \frac{1}{6}u_{e,ttt}(x_i,y_j,t_n)\Delta t^2 + {\mathcal{O}(\Delta t^4)}$$
+
+gives the truncation error of our discrete equation as
+$$R^n_{i,j} =  \frac{1}{12}u_{e,tttt}(x_i,y_j,t_n)\Delta t^2 + \frac{b}{6}u_{e,ttt}(x_i,y_j,t_n)\Delta t^2 + \mathcal{O}(\Delta t^4,\Delta x^2, \Delta y^2)$$
+
+
 \subsection*{Verifying the solver using constant solution}
 As a test case, we try implementing a constant solution
 $$u_e = C = {\rm const.},$$
@@ -163,43 +240,52 @@ We will verify our solver by attempting to reproduce a seperable exact solution
 $$u_e(x,y,t) = X(x)Y(y)T(t),$$
 where $X$, $Y$ are cubic polynomials and $T$ is quadratic. To satisfy our Neumann boundary conditions, we will have to construct $X$ and $Y$ so that they vanish on the boundaries, so
 $$u_e(x,y,t) = 0 \mbox{ on } \delta\Omega, \qquad X(0)=X(L_x)=Y(0)=Y(L_y)=0.$$
-For ease of implementation, we won't treat the polynomials as completely general. We let $T(t)=Dt$, this implies that $I(x,y)=0$, and $V(x,y)=DX(x)Y(y)$ We then have
+For ease of implementation, we won't treat the polynomials as completely general. We let $T(t=0)=0$ so that $I(x,y)=0$. We then have
 \begin{align*}
-X(x) &= A x^3 -\frac{3}{2}L_xAx^2 \\
-Y(y) &= B y^3 -\frac{3}{2}L_yBy^2 \\
-T(t) &= Dt,
+X(x) &= A x^3 -\frac{3}{2}L_xAx^2 + C_x, \\
+Y(y) &= B y^3 -\frac{3}{2}L_yBy^2 + C_y, \\
+T(t) &= D t^2,
 \end{align*}
-where $A$, $B$, and $D$ are all real constants. To fit our source term to the exact solution, we insert it into our discrete equation.
+where $A$, $B$, $C_x$, $C_y$ and $D$ are all real constants. To fit our source term to the exact solution, we insert it into our discrete equation
 $$[\D_t\D_t u_e + b\D_{2t}u_e = \D_x \overline{q}^{x}\D_x u + \D_y \overline{q}^y \D_y u + f]^{n}_{i,j}.$$
 In our verification we will ignore damping ($b=0$) and we will let the wave velocity be constant, $q(x,y)=\mbox{const.}$, so the equation simplifies 
 $$[X\cdot Y\cdot \D_t\D_t T = q\cdot  Y\cdot T\cdot  \D_x \D_x X + q\cdot  X\cdot T\cdot  \D_y \D_y Y + f]^{n}_{i,j}.$$
-This is our discrete equation for all internal mesh points, for the points next to the boundaries, the discrete equation will look slightly different, which we will discuss shortly. As all finite differences in the discrete equation are 2.\ order we know that they exactly reproduce the derivative of a third degree polynomial (this can be shown from simple insertion), so we have
+This is our discrete equation for all internal mesh points. For the points next to the boundaries, the discrete equation will look slightly different, 
+which we will discuss shortly. As all finite differences in the discrete equation are 2.\ order we know that they exactly reproduce the derivative of 
+a third degree polynomial (this can be shown from simple insertion), so we have
 \begin{align*}
-\D_t \D_t T(t) &= \D_t \D_t Dt = 0, \\
-\D_x \D_x X(x) &= \D_x \D_x \bigg(A x^3 -\frac{3}{2}L_xAx^2 \bigg) = A(6x - 3L_x), \\  
-\D_y \D_y Y(y) &= \D_y \D_y \bigg(B y^3 -\frac{3}{2}L_yBy^2 \bigg) = B(6y - 3L_y), \\  
+\D_t \D_t T(t) &= \D_t \D_t Dt^2 = 2D, \\
+\D_x \D_x X(x) &= \D_x \D_x \bigg(A x^3 -\frac{3}{2}L_xAx^2 + C_x\bigg) = 6Ax - 3LxA, \\  
+\D_y \D_y Y(y) &= \D_y \D_y \bigg(B y^3 -\frac{3}{2}L_yBy^2 + C_y\bigg) = 6By - 3LyB, \\  
 \end{align*}
 So when we write out the discrete equation we have
-$$0 = q Y_j \cdot T_n \cdot(6Ax_i - 3L_x A) + qX_i\cdot T_n \cdot(6By_i - 3L_y B) + f_{i,j}^n.$$
+$$X_i \cdot Y_j \cdot 2D = q Y_j \cdot T_n \cdot(6Ax_i - 3L_x A) + qX_i\cdot T_n \cdot(6By_i - 3L_y B) + f_{i,j}^n.$$
 So the fitted source term is
-$$f_{i,j}^n = -q\bigg(A(6x - 3L_x)Y_j + B(6y - 3L_y)X_i\bigg)\cdot T_n.$$
-If we use this source term, the discrete equation is solved exactly, and the solver should reproduce the exact separable solution. This is the case for the internal mesh points, let us now look closer at the points at the boundary of our domain.
+$$f_{i,j}^n = 2D\cdot X_i\cdot Y_j - q Y_j \cdot T_n \cdot(6Ax_i - 3L_xA) - qX_i\cdot T_n \cdot(6By_i - 3L_yB).$$
+If we use this source term, the discrete equation is solved exactly, and the solver should reproduce the exact separable solution. This is the case for the interal mesh
+points, let us now look closer at the points at the boundary of our domain.
 
 \subsubsection*{Source term at the boundary}
 
-Due to our Neumann condition, $\p u/\p n = 0$ on $\delta \Omega$, the discrete equation we are solving on the boundary is slightly different than the discrete equation for the internal mesh points. For the internal mesh points we had
+Due to our Neumann condition, $\p u/\p n = 0$ on $\delta \Omega$, the discrete equation we are solving on the boundary is slightly different than the discrete equation 
+for the internal mesh points. For the internal mesh points we had
 $$[\D_t\D_t u = q \D_x \D_x u + q \D_y \D_y u + f]^{n}_{i,j}.$$
 Where the spatial derivatives are the 2.\ order central differences
 $$\D_x \D_x u = \frac{u_{i+1} - 2u_i + u_{i-1}}{\Delta x^2},$$
-however, at the boundary $x = 0$, we have $i=0$, meaning we need to know the value outside the mesh $u_{-1}$. In our implementation, this point is included as a ghost cell, so there is no problem evaluating this point. This is possible because we know that $u_{-1} = u_{1}$, due to our reflective Neumann boundary condition. Inserting this equality, effectively means we are using the discrete equation
+however, at the boundary $x = 0$ we have $i=0$, meaning we need to know the value outside the mesh $u_{-1}$. In our implementation this point is included as a 
+ghost cell, so there is no problem evaluating this point. This is possible because we know that $u_{-1} = u_{1}$, due to our reflective Neumann boundary condition. 
+Inserting this equality effectively means we are using the discrete equation
 $$[\D_t\D_t u = q \D_x \D_x u + q\frac{2}{\Delta x} \D_{2x}u +  q \D_y \D_y u + f]^{n}_{i,j}.$$
 at the boundary $x = 0$. For $x=L_x$ we get the oppositve sign on the central difference term. A same reasoning works for the boundaries at $y=0$ and $y=L_y$.
 
-The first order central difference does \emph{not} exactly reproduce a cubic polynomial, which is easy to show explicitly
+If we insert the exact separable solution into this discrete equation we get the same terms as earlier, plus an extra contribution from the term
 $$q\frac{2}{\Delta x} \D_{2x} u_e.$$
-This means that we must use an extra contribution to the source term at the boundary:
+The first order central difference does \emph{not} exactly reproduce a cubic polynomial, which is easy to show explicitly
+$$\D_{2x} x^3 = \frac{(x+\Delta x)^3 - (x-\Delta x)^3}{2\Delta x} = \frac{6x^2\Delta x + 2\Delta x^3}{2\Delta x} = 3x^2 + \Delta x^2.$$
+This error in the first order central difference must be added to the source term, so we add the contribution
 $$g_1 = -[q\frac{2}{\Delta x} \D_{2x} u_e]_{i,j}^n = -2qY_jT_n A \Delta x,$$
-the expression $g_1$ applies at the boundary $x = 0$. Similar, slightly different, corrections have to be added at $x=L_x$ and $y=0$ and $y=L_y$.
+at the boundary $x = 0$. Similar, slightly different, corrections have to be added at $x=L_x$ and $y=0$ and $y=L_y$.
+
 
 
 
