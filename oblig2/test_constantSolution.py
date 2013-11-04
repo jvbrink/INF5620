@@ -16,9 +16,9 @@ def test_constant(c=np.pi):
 
     Lx = 5
     Ly = 10
-    Nx = 40
-    Ny = 80
-    dt = 0.1
+    Nx = 25
+    Ny = 50
+    dt = 0.01
     T = 1
     q = 2.0
     b = 3.0
@@ -26,7 +26,7 @@ def test_constant(c=np.pi):
     problem = ConstantSolution(b, c=c, q_const=q)
 
     print "Verifying solver for a constant solution u_e=const."
-    for v in ["scalar", "vectorized"]:
+    for v in ["scalar"]:
         solver = Solver(problem, Lx, Ly, Nx, Ny, dt, T, version=v)
         u_e = np.zeros(solver.get_solution().shape)
         u_e.fill(c)
@@ -34,7 +34,7 @@ def test_constant(c=np.pi):
         u = solver.get_solution()
         diff = abs(u-u_e).max()
         print "%10s: abs(u-u_e).max() = %e" % (v, diff)
-        nt.assert_almost_equal(diff, 0, places=12)
+        nt.assert_almost_equal(diff, 0, places=13)
 
 if __name__ == "__main__":
     test_constant()

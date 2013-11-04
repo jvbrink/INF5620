@@ -152,6 +152,9 @@ u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\fr
 \end{align*}
 where $h_x = \Delta t^2/\Delta x^2$.
 
+\subsection*{Modified Scheme for the first step}
+
+
 \subsection*{Finding the truncation error}
 We want to find the truncation error, meaning the residual, R, in our discrete equation:
 
@@ -212,7 +215,7 @@ $$ [\D_xqu_{e,x}]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \fra
 $$ [\D_xG]^n_{i,j}\Delta x^2 = G_x(x_i,y_j,t_n)\Delta x^2 + \frac{1}{24} G_{xxx}(x_i,y_j,t_n)\Delta x^4 + \mathcal{O}(\Delta x^4) $$
 
 
-There will be several terms with the factor $$\Delta x^2$$ so we collect these into a term $$\mathcal{O}(\Delta x^2$$
+There will be several terms with the factor $$\Delta x^2$$ so we collect these into a term $$\mathcal{O}(\Delta x^2)$$
 
 $$[\D_x\overline{q}^x\D_xu_e]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \mathcal{O}(\Delta x^2)$$
 
@@ -227,6 +230,7 @@ $$\lbrack D_{2t}u_e \rbrack^n = u_{e,t}(x_i,y_j,t_n) + R^n, \qquad R^n = \frac{1
 gives the truncation error of our discrete equation as
 $$R^n_{i,j} =  \frac{1}{12}u_{e,tttt}(x_i,y_j,t_n)\Delta t^2 + \frac{b}{6}u_{e,ttt}(x_i,y_j,t_n)\Delta t^2 + \mathcal{O}(\Delta t^4,\Delta x^2, \Delta y^2)$$
 
+We see that the residual term is of 2.\ order in all three dimensions, and so the error of our numerical scheme will be of that order.
 
 \subsection*{Verifying the solver using constant solution}
 As a test case, we try implementing a constant solution
