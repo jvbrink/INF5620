@@ -95,6 +95,12 @@
 
 \section*{Description}
 
+In this project we develop a solver for the general two-dimensional, standard, linear wave equation with damping. The boundary is assumed to always be totally reflective, meaning we are working with a Neumann boundary condition. The solver is based on finite difference methods, and has a second-order complexity in both spatial dimensions and in time.
+
+The solver is verified using the method of manufactured solutions, reproducing both an exact constant solution and a separable solution of cubic polynomials to machine precision.
+
+
+
 \clearpage
 
 \section*{Partial Differential Equation}
@@ -153,6 +159,25 @@ u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\fr
 where $h_x = \Delta t^2/\Delta x^2$.
 
 \subsection*{Modified Scheme for the first step}
+Our discrete equation at the first time step, i.e.\ for $n=0$, is as follows
+\begin{align*}
+u_{i,j}^{1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^0 - \bigg(1-\frac{b\Delta t}{2}\bigg)u_{i,j}^{-1} \\ 
+&\qquad + \frac{h_x}{2}\bigg(\big(q_{i+1,j}+q_{i,j}\big)\big(u_{i+1,j}^0-u_{i,j}^0\big) + \big(q_{i-1,j} + q_{i,j}\big)\big(u_{i-1,j}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \frac{h_y}{2}\bigg(\big(q_{i,j+1}+q_{i,j}\big)\big(u_{i,j+1}^0-u_{i,j}^0\big) + \big(q_{i,j-1} + q_{i,j}\big)\big(u_{i,j-1}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \Delta t^2 f(x_i, y_j, t_0) \bigg].
+\end{align*}
+Here, $u_0$ is known from the initial condition $I(x,y)$, but $u^{-1}$ is not known. To account for this, we approximate the initial condition $V(x,y)$ using a central difference,
+$$V(x,y) = \frac{\p u(x,y)}{\p t}\bigg|_{t=0} \approx \big[D_{2t} u\big]^0 = \frac{u^1 - u^{-1}}{2\Delta t}.$$
+Solving for $u^{-1}$ gives the approximation
+$$u_{i,j}^{-1} \approx u_{i,j}^1 - 2\Delta t V(x_i,y_j).$$
+Inserting this approximation back into the discrete equation at $n=0$ and solving for $u_{i,j}^1$ gives
+\begin{align*}
+u_{i,j}^{1} &= \frac{1}{2}\bigg[2u_{i,j}^0 + \bigg(1-\frac{b\Delta t}{2}\bigg)2\Delta T V(x_i, y_j) \\ 
+&\qquad + \frac{h_x}{2}\bigg(\big(q_{i+1,j}+q_{i,j}\big)\big(u_{i+1,j}^0-u_{i,j}^0\big) + \big(q_{i-1,j} + q_{i,j}\big)\big(u_{i-1,j}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \frac{h_y}{2}\bigg(\big(q_{i,j+1}+q_{i,j}\big)\big(u_{i,j+1}^0-u_{i,j}^0\big) + \big(q_{i,j-1} + q_{i,j}\big)\big(u_{i,j-1}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \Delta t^2 f(x_i, y_j, t_0) \bigg].
+\end{align*}
+This numerical scheme is used for the first time step.
 
 
 \subsection*{Finding the truncation error}
@@ -290,6 +315,7 @@ This error in the first order central difference must be added to the source ter
 $$g_1 = -[q\frac{2}{\Delta x} \D_{2x} u_e]_{i,j}^n = -2qY_jT_n A \Delta x,$$
 at the boundary $x = 0$. Similar, slightly different, corrections have to be added at $x=L_x$ and $y=0$ and $y=L_y$.
 
+With this implemented, we run a test case using nose and verify that it succeeds.
 
 
 

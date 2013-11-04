@@ -1,4 +1,4 @@
-from wave2D_ghost import *
+from wave2D import *
 
 def test_separable(c=np.pi):
     """
@@ -12,7 +12,7 @@ def test_separable(c=np.pi):
     """
     import nose.tools as nt
 
-    class CubicSolution(Problem):
+    class CubicSolution(WaveProblem):
         def __init__(self, A, B, D, dx, dy, Lx, Ly, q_const=2.0):
             self.A, self.B, self.D = A, B, D
             self.dx, self.dy = dx, dy 
@@ -100,23 +100,22 @@ def test_separable(c=np.pi):
 
     problem = CubicSolution(A, B, D, dx, dy, Lx, Ly, q_const=q)
 
-    print "Verifying solver for a cubic solution."
-    for v in ["vectorized"]:
-        solver = Solver(problem, Lx, Ly, Nx, Ny, dt, T, version=v)
+    print "Verifying solver for a separable solution."
+    for v in ["scalar", "vectorized"]:
+        solver = WaveSolver(problem, Lx, Ly, Nx, Ny, dt, T, version=v)
         x, y = solver.get_mesh()
 
         u = solver.get_solution()
-        print u
 
         while solver.n < solver.Nt:                
             solver.advance()
             t = solver.t[solver.n]
             
-
         u_e = problem.u_e(x[:,np.newaxis],y[np.newaxis,:],t)
         u = solver.get_solution()
         diff = abs(u-u_e).max()
-        print diff
+        print "%10s: abs(u-u_e).max() = %e" % (v, diff)
+        nt.assert_almost_equal(diff, 0, places=12)
     
 if __name__ == "__main__":
     test_separable()

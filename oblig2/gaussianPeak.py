@@ -1,7 +1,8 @@
-from wave2D_ghost import *
+from wave2D import *
 
-def gaussianPeak():
-    class GaussianWithDamping(Problem):
+def gaussian_peak():
+    '''Illustrating a simple use of the WaveProblem and WaveSolver classes.'''
+    class GaussianWithDamping(WaveProblem):
         def __init__(self, Lx, Ly, b):
             self.Lx, self.Ly, self.b = Lx, Ly, b
 
@@ -17,12 +18,15 @@ def gaussianPeak():
     Nx = 40
     Ny = 80
     dt = 0.01
-    T = 1
+    T = 2.0
     b = 2.0
     version="vectorized"
     problem = GaussianWithDamping(Lx, Ly, b)
-    solver = Solver(problem, Lx, Ly, Nx, Ny, dt, T, version=version)
-    plotSolutions(solver, save='test', zlim=2)
+    solver = WaveSolver(problem, Lx, Ly, Nx, Ny, dt, T, version=version)
+    plotter = WavePlotter(solver)
+    
+    plotter.solve_and_plot(save='test', zlim=2)
+    
 
 if __name__ == '__main__':
-    gaussianPeak()
+    gaussian_peak()

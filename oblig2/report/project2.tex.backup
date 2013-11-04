@@ -152,6 +152,20 @@ u_{i,j}^{n+1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^n - \bigg(1-\fr
 \end{align*}
 where $h_x = \Delta t^2/\Delta x^2$.
 
+\subsection*{Modified Scheme for the first step}
+Our discrete equation at the first time step, i.e.\ for $n=0$, is as follows
+\begin{align*}
+u_{i,j}^{1} &= \bigg(\frac{2}{2+b\Delta t}\bigg)\Bigg[2u_{i,j}^0 - \bigg(1-\frac{b\Delta t}{2}\bigg)u_{i,j}^{-1} \\ 
+&\qquad + \frac{h_x}{2}\bigg(\big(q_{i+1,j}+q_{i,j}\big)\big(u_{i+1,j}^0-u_{i,j}^0\big) + \big(q_{i-1,j} + q_{i,j}\big)\big(u_{i-1,j}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \frac{h_y}{2}\bigg(\big(q_{i,j+1}+q_{i,j}\big)\big(u_{i,j+1}^0-u_{i,j}^0\big) + \big(q_{i,j-1} + q_{i,j}\big)\big(u_{i,j-1}^0-u_{i,j}^0\big)\bigg) \\
+&\qquad + \Delta t^2 f(x_i, y_j, t_0) \bigg].
+\end{align*}
+Here, $u_0$ is known from the initial condition $I(x,y)$, but $u^{-1}$ is not known. To account for this, we approximate the initial condition $V(x,y)$ using a central difference,
+$$V(x,y) = \frac{\p u(x,y)}{\p t}\bigg|_{t=0} \approx \big[D_{2t} u\big]^0 = \frac{u^1 - u^{-1}}{2\Delta t}.$$
+Solving for $u^{-1}$ gives the approximation
+$u_{i,j}^{-1} \approx 2\Delta t V(x_i,y_j)$ 
+
+
 \subsection*{Finding the truncation error}
 We want to find the truncation error, meaning the residual, R, in our discrete equation:
 
@@ -212,7 +226,7 @@ $$ [\D_xqu_{e,x}]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \fra
 $$ [\D_xG]^n_{i,j}\Delta x^2 = G_x(x_i,y_j,t_n)\Delta x^2 + \frac{1}{24} G_{xxx}(x_i,y_j,t_n)\Delta x^4 + \mathcal{O}(\Delta x^4) $$
 
 
-There will be several terms with the factor $$\Delta x^2$$ so we collect these into a term $$\mathcal{O}(\Delta x^2$$
+There will be several terms with the factor $$\Delta x^2$$ so we collect these into a term $$\mathcal{O}(\Delta x^2)$$
 
 $$[\D_x\overline{q}^x\D_xu_e]^n_{i,j} = \frac{\p}{\p x}q(x_i,y_j)u_{e,x}(x_i,y_j,t_n) + \mathcal{O}(\Delta x^2)$$
 
@@ -220,11 +234,14 @@ In the same way we find
 
 $$[\D_y\overline{q}^y\D_yu_e]^n_{i,j} = \frac{\p}{\p y}q(x_i,y_j)u_{e,y}(x_i,y_j,t_n) + \mathcal{O}(\Delta y^2).$$
 
-This result, together with the eroors in the time derivatives;
-
+This result, together with the errors in the time derivatives;
 $$\lbrack D_tD_t u_e \rbrack^n = u_{e,tt}(x_i,y_j,t_n) + R^n, \qquad R^n = \frac{1}{12}u_{e,tttt}(x_i,y_j,t_n)\Delta t^2 + {\mathcal{O}(\Delta t^4)}$$
 $$\lbrack D_{2t}u_e \rbrack^n = u_{e,t}(x_i,y_j,t_n) + R^n, \qquad R^n = \frac{1}{6}u_{e,ttt}(x_i,y_j,t_n)\Delta t^2 + {\mathcal{O}(\Delta t^4)}$$
 
+gives the truncation error of our discrete equation as
+$$R^n_{i,j} =  \frac{1}{12}u_{e,tttt}(x_i,y_j,t_n)\Delta t^2 + \frac{b}{6}u_{e,ttt}(x_i,y_j,t_n)\Delta t^2 + \mathcal{O}(\Delta t^4,\Delta x^2, \Delta y^2)$$
+
+We see that the residual term is of 2.\ order in all three dimensions, and so the error of our numerical scheme will be of that order.
 
 \subsection*{Verifying the solver using constant solution}
 As a test case, we try implementing a constant solution
@@ -238,17 +255,19 @@ We will verify our solver by attempting to reproduce a seperable exact solution
 $$u_e(x,y,t) = X(x)Y(y)T(t),$$
 where $X$, $Y$ are cubic polynomials and $T$ is quadratic. To satisfy our Neumann boundary conditions, we will have to construct $X$ and $Y$ so that they vanish on the boundaries, so
 $$u_e(x,y,t) = 0 \mbox{ on } \delta\Omega, \qquad X(0)=X(L_x)=Y(0)=Y(L_y)=0.$$
-For ease of implementation, we won't treat the polynomials as completely general. We let $T(t)=0$ so that $I(x,y)=0$. We then have
+For ease of implementation, we won't treat the polynomials as completely general. We let $T(t=0)=0$ so that $I(x,y)=0$. We then have
 \begin{align*}
 X(x) &= A x^3 -\frac{3}{2}L_xAx^2 + C_x, \\
 Y(y) &= B y^3 -\frac{3}{2}L_yBy^2 + C_y, \\
 T(t) &= D t^2,
 \end{align*}
-where $A$, $B$, $C_x$, $C_y$ and $D$ are all real constants. To fit our source term to the exact solution, we insert it into our discrete equation.
+where $A$, $B$, $C_x$, $C_y$ and $D$ are all real constants. To fit our source term to the exact solution, we insert it into our discrete equation
 $$[\D_t\D_t u_e + b\D_{2t}u_e = \D_x \overline{q}^{x}\D_x u + \D_y \overline{q}^y \D_y u + f]^{n}_{i,j}.$$
 In our verification we will ignore damping ($b=0$) and we will let the wave velocity be constant, $q(x,y)=\mbox{const.}$, so the equation simplifies 
 $$[X\cdot Y\cdot \D_t\D_t T = q\cdot  Y\cdot T\cdot  \D_x \D_x X + q\cdot  X\cdot T\cdot  \D_y \D_y Y + f]^{n}_{i,j}.$$
-This is our discrete equation for all internal mesh points, for the points next to the boundaries, the discrete equation will look slightly different, which we will discuss shortly. As all finite differences in the discrete equation are 2.\ order we know that they exactly reproduce the derivative of a third degree polynomial (this can be shown from simple insertion), so we have
+This is our discrete equation for all internal mesh points. For the points next to the boundaries, the discrete equation will look slightly different, 
+which we will discuss shortly. As all finite differences in the discrete equation are 2.\ order we know that they exactly reproduce the derivative of 
+a third degree polynomial (this can be shown from simple insertion), so we have
 \begin{align*}
 \D_t \D_t T(t) &= \D_t \D_t Dt^2 = 2D, \\
 \D_x \D_x X(x) &= \D_x \D_x \bigg(A x^3 -\frac{3}{2}L_xAx^2 + C_x\bigg) = 6Ax - 3LxA, \\  
@@ -257,16 +276,20 @@ This is our discrete equation for all internal mesh points, for the points next 
 So when we write out the discrete equation we have
 $$X_i \cdot Y_j \cdot 2D = q Y_j \cdot T_n \cdot(6Ax_i - 3L_x A) + qX_i\cdot T_n \cdot(6By_i - 3L_y B) + f_{i,j}^n.$$
 So the fitted source term is
-$$f_{i,j}^n = 2D\cdot X_i\cdot Y_j - q Y_j \cdot T_n \cdot(6Ax_i - 3L_xA) + qX_i\cdot T_n \cdot(6By_i - 3L_yB).$$
-If we use this source term, the discrete equation is solved exactly, and the solver should reproduce the exact separable solution. This is the case for the interal mesh points, let us now look closer at the points at the boundary of our domain.
+$$f_{i,j}^n = 2D\cdot X_i\cdot Y_j - q Y_j \cdot T_n \cdot(6Ax_i - 3L_xA) - qX_i\cdot T_n \cdot(6By_i - 3L_yB).$$
+If we use this source term, the discrete equation is solved exactly, and the solver should reproduce the exact separable solution. This is the case for the interal mesh
+points, let us now look closer at the points at the boundary of our domain.
 
 \subsubsection*{Source term at the boundary}
 
-Due to our Neumann condition, $\p u/\p n = 0$ on $\delta \Omega$, the discrete equation we are solving on the boundary is slightly different than the discrete equation for the internal mesh points. For the internal mesh points we had
+Due to our Neumann condition, $\p u/\p n = 0$ on $\delta \Omega$, the discrete equation we are solving on the boundary is slightly different than the discrete equation 
+for the internal mesh points. For the internal mesh points we had
 $$[\D_t\D_t u = q \D_x \D_x u + q \D_y \D_y u + f]^{n}_{i,j}.$$
 Where the spatial derivatives are the 2.\ order central differences
 $$\D_x \D_x u = \frac{u_{i+1} - 2u_i + u_{i-1}}{\Delta x^2},$$
-however, at the boundary $x = 0$, we have $i=0$, meaning we need to know the value outside the mesh $u_{-1}$. In our implementation, this point is included as a ghost cell, so there is no problem evaluating this point. This is possible because we know that $u_{-1} = u_{1}$, due to our reflective Neumann boundary condition. Inserting this equality, effectively means we are using the discrete equation
+however, at the boundary $x = 0$ we have $i=0$, meaning we need to know the value outside the mesh $u_{-1}$. In our implementation this point is included as a 
+ghost cell, so there is no problem evaluating this point. This is possible because we know that $u_{-1} = u_{1}$, due to our reflective Neumann boundary condition. 
+Inserting this equality effectively means we are using the discrete equation
 $$[\D_t\D_t u = q \D_x \D_x u + q\frac{2}{\Delta x} \D_{2x}u +  q \D_y \D_y u + f]^{n}_{i,j}.$$
 at the boundary $x = 0$. For $x=L_x$ we get the oppositve sign on the central difference term. A same reasoning works for the boundaries at $y=0$ and $y=L_y$.
 

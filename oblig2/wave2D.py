@@ -1,197 +1,266 @@
-"""
-2D wave equation solver
-"""
+#!/usr/bin/env python
 
 import numpy as np
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
 
-class Solver():
+class WaveProblem():
+	def __init__(self, b, q_const=1.0):
+		self.b = b
+		self.q_const = q_const
+
+	def f(self, x, y, t):
+		"""Source term"""
+		return 0.0
+
+	def I(self, x, y):
+		"""Initial condition, u(x,y,0)=I(x,y)"""
+		return 0.0
+
+	def V(self, x, y):
+		"""Initial velocity u_t(x,y,0)=V(x,y)"""
+		return 0.0
+
+	def q(self, x, y):
+		"""Wave velocity, q=c^2"""
+		return self.q_const
+
+class WaveSolver():
 	"""
-	Class for solving the 2D wave equation with
-	damping and a spatially variable wave velocity
+	A solver for solving a standard 2D linear wave equation
+	with damping:
 
-	u_tt + b*u_t = (q(x,y)*u_x)_x + (q(x,y)*u_y)_y + f(x,y,t)
+	u_tt + b*u_t = (q(x,y)*u_x)_x + (q(x,y)u_y)_y + f(x,y,t)
 
-	Constructor:
-	I 		- Initial u
-	V 		- Initial velocity
-	f 	 	- Source term
-	q		- Wave velocity, q=c^2
-	Lx, Ly 	- Lengths
-	Nx, Ny 	- Number of mesh cells
-	dt 		- Time step
-	T 		- End time
+	with boundary condition: 	u_n = 0
+
+	and  initial conditions: 	u(x,y,0) = I(x,y)
+								u_t(x,y,0) = V(x,y)
 	"""
 
-	def __init__(self, I, V, q, Lx, Ly, Nx, Ny, dt, T, f=None):
-		# Create meshpoints
-		x = np.linspace(0, Lx, Nx+1)
-		y = np.linspace(0, Ly, Ny+1)
-		
-		# Calculate spacing
-		dx = x[1]-x[0]
-		dy = y[1]-y[0]
-		hx = (dt/dx)**2
-		hy = (dt/dx)**2
+	def __init__(self, problem, Lx, Ly, Nx, Ny, dt, T, version="scalar"):
+		# Create spatial mesh including ghost points
+		dx = Lx/float(Nx)
+		dy = Ly/float(Ny)
+		x = np.linspace(-dx, Lx+dx, Nx+3)
+		y = np.linspace(-dy, Ly+dy, Ny+3)
+		Ix = range(1, Nx+2)
+		Iy = range(1, Ny+2)
+
+		# Create time mesh
 		Nt = int(round(T/float(dt)))
 		t = np.linspace(0, Nt*dt, Nt+1)
 
-		# Set up initial conditions
-		if type(I) == np.ndarray:
-			u = I
-		else:
-			# Make sure I is callable
-			I = I if I else (lambda x, y: 0)
-			# Evaluate I in mesh points
-			u = np.zeros((Nx+1,Ny+1))
-			for i in range(Nx+1):
-				for j in range(Ny+1):
-					u[i,j] = I(x[i],y[j])
-			
+		# Set up inital conditions
+		u = np.zeros((Nx+3, Ny+3))
+		v = np.zeros((Nx+3, Ny+3))
+		for i in Ix:
+			for j in Iy:
+				u[i,j] = problem.I(x[i],y[j])
+				v[i,j] = problem.V(x[i],y[j])
 
-		if type(V) == np.ndarray:
-			v = V
-		else:
-			# Make sure V is callable
-			V = V if V else (lambda x, y: 0)
-			# Evaluate V in mesh points
-			v = np.zeros((Nx+1,Ny+1))
-			for i in range(Nx+1):
-				for j in range(Ny+1):
-					v[i,j] = V(x[i],y[j])
+		# Set values of ghost cells
+		u = self.update_ghost_cells(u, Ix, Iy)
+		v = self.update_ghost_cells(v, Ix, Iy)
+		
+		# Make q into npdarray
+		q = np.zeros((Nx+3,Ny+3))
+		for i in Ix:
+			for j in Iy:
+				q[i,j] = problem.q(x[i],y[j])
+		# Set q-values of ghost cells, assuming dq/dn=0 at boundary
+		q = self.update_ghost_cells(q, Ix, Iy)
 
-		# Make sure f and q are callable		
-		if type(q) == float or type(q) == int:
-			tmp = q
-			q = (lambda x, y: tmp)
-		f = f if f else (lambda x, y, t: 0)
-
-
-		# Calculate the ??? point
-		up = u - dt*v
+		# First step uses a different scheme
+		self.advance = self.first_step
 
 		# Store values for later use
-		self.x = x
-		self.y = y
-		self.dx = dx
-		self.dy = dy
+		self.x, self.y, self.t = x, y, t
+		self.Ix, self.Iy = Ix, Iy
+		self.dx, self.dy, self.dt = dx, dy, dt
 		self.u = u
-		self.up = up
-		self.hx = hx
-		self.hy = hy
-		self.Nx = Nx
-		self.Ny = Ny
-		self.Nt = Nt
+		self.v = v
+		self.T = T
+		self.Nx, self.Ny, self.Nt = Nx, Ny, Nt
+		self.Lx, self.Ly = Lx, Ly
+		self.b = problem.b
 		self.q = q
-		self.f = f
+		self.f = problem.f
+		self.version = version
 		self.n = 0
 
-	def advance(self):
-		up, upp = self.u, self.up
-		hx, hy = self.hx, self.hy
-		Nx, Ny, Nt = self.Nx, self.Ny, self.Nt
-		dx, dy = self.dx, self.dy
-		q, f = self.q, self.f
-		n = self.n + 1
-		u = np.zeros((Nx, Ny))
+	
 
-		# Update internal mesh points
-		for i in range(1, Nx-1):
-			for j in range(1, Ny-1):
-				u[i,j] = 2*up[i,j] - upp[i,j] + \
-			 		hx*(q((i+.5)*dx,j*dy)*(up[i+1,j]-up[i,j]) -\
-			 			q((i-.5)*dx,j*dy)*(up[i,j]-up[i-1,j])) +\
-			 		hy*(q(i*dx,(j+.5)*dy)*(up[i,j+1]-up[i,j]) -\
-			 			q(i*dx,(j-.5)*dy)*(up[i,j]-up[i,j-1]))+\
-		 			f(i*dx, j*dy, n*Nt)
+	def update_ghost_cells(self, u, Ix, Iy):
+		i = Ix[0]
+		u[i-1,:] = u[i+1,:]
+		i = Ix[-1]
+		u[i+1,:] = u[i-1,:]
+		j = Iy[0]
+		u[:,j-1] = u[:,j+1]
+		j = Iy[-1]
+		u[:,j+1] = u[:,j-1]
 
-	 	# Update boundary mesh points
-		for j in range(1, Ny-1):
-			# x=0 boundary
-			u[0,j] = 2*up[0,j] - upp[0,j] + \
-			 		2*hx*q(.5*dx,j*dy)*(up[1,j]-up[0,j]) +\
-			 		hy*(q(0,(j+.5)*dy)*(up[0,j+1]-up[0,j]) -\
-			 			q(0,(j-.5)*dy)*(up[0,j]-up[0,j-1]))+\
-		 			f(0, j*dy, n*Nt)
+		return u
+		
 
-			# x=Lx boundary
-		 	u[-1,j] = 2*up[-1,j] - upp[-1,j] + \
-			 		2*hx*q((Nx-.5)*dx,j*dy)*(up[-2,j]-up[-1,j]) +\
-			 		hy*(q(0,(j+.5)*dy)*(up[-1,j+1]-up[-1,j]) -\
-			 			q(0,(j-.5)*dy)*(up[-1,j]-up[-1,j-1]))+\
-		 			f(Nx*dx, j*dy, n*Nt)
+	def first_step(self):
+		up = self.u
+		x, y, t = self.x, self.y, self.t
+		Ix, Iy = self.Ix, self.Iy
+		hx, hy = self.dt**2/self.dx**2, self.dt**2/self.dy**2
+		b, q, f = self.b, self.q, self.f
+		dt = self.dt
+		v = self.v
+		dt2 = dt**2
+		
+		n = self.n
+		u = np.zeros(up.shape)
+		for i in Ix:
+			for j in Iy:
+				# Updating the internal mesh points
+				qij = q[i,j]
+				qpi = (q[i+1,j] + qij)/2.
+				qmi = (q[i-1,j] + qij)/2.
+				qpj = (q[i,j+1] + qij)/2.
+				qmj = (q[i,j-1] + qij)/2.
+				uij = up[i,j]
 
-		for i in range(1, Nx-1):
-			# y=0 boundary
-			u[i,0] = 2*up[i,0] - upp[i,0] + \
-			 		hx*(q((i+.5)*dx,0)*(up[i+1,0]-up[i,0]) -\
-			 			q((i-.5)*dx,0)*(up[i,0]-up[i-1,0])) +\
-			 		2*hy*q(i*dx,.5*dy)*(up[i,1]-up[i,0]) +\
-		 			f(i*dx, Nx*dx, n*Nt)
+				u_x = qpi*(up[i+1,j] - uij) + qmi*(up[i-1,j] - uij)
+				u_y = qpj*(up[i,j+1] - uij) + qmj*(up[i,j-1] - uij)
 
-		 	# y=Ly boundary
-		 	u[i,-1] = 2*up[i,-1] - upp[i,-1] + \
-			 		hx*(q((i+.5)*dx,Ny*dy)*(up[i+1,-1]-up[i,-1]) -\
-			 			q((i-.5)*dx,Ny*dy)*(up[i,-1]-up[i-1,-1])) +\
-			 		2*hy*q(i*dx,(Ny-.5)*dy)*(up[i,-2]-up[i,-1]) +\
-		 			f(i*dx, Ny*dy, n*Nt)			
+				u[i,j] = 2*uij + (1 - b*dt/2.)*2*dt*v[i,j]  \
+				         + hx*u_x + hy*u_y + dt2*f(x[i],y[j],t[n])
 
-		# Corners
-		u[0,0] = 2*up[0,0] - upp[0,0] + \
-			 		2*hx*q(.5*dx,0)*(up[1,0]-up[0,0]) +\
-			 		2*hy*q(0,.5*dy)*(up[0,1]-up[0,0]) +\
-		 			f(0, 0, n*Nt)
-		u[-1,0] = 2*up[-1,0] - upp[-1,0] + \
-			 		2*hx*q((Nx-.5)*dx,0)*(up[-2,0]-up[-1,0]) +\
-			 		2*hy*q(Nx*dx,.5*dy)*(up[-1,1]-up[-1,0]) +\
-		 			f(Nx*dx, 0, n*Nt)
-		u[0,-1] = 2*up[0,-1] - upp[0,-1] + \
-			 		2*hx*q(.5*dx,Ny*dy)*(up[1,-1]-up[0,-1]) +\
-			 		2*hy*q(0,(Ny-.5)*dy)*(up[0,-2]-up[0,-1]) +\
-		 			f(0, Ny*dy, n*Nt)
-		u[-1,-1] = 2*up[-1,-1] - upp[-1,-1] + \
-			 		2*hx*q((Nx-.5)*dx,Ny*dy)*(up[-2,-1]-up[-1,-1]) +\
-			 		2*hy*q(Nx*dx,(Ny-.5)*dy)*(up[-1,-2]-up[-1,-1]) +\
-		 			f(Nx*dx, Ny*dy, n*Nt)
+				u[i,j] /= 2.
+				
+		u = self.update_ghost_cells(u, Ix, Iy)
 
 		self.up = up
 		self.u = u
-		self.n = n
+		self.n = n + 1 
+
+		# Select version
+		if self.version == "scalar":
+			self.advance = self.advance_scalar
+		if self.version == "vectorized":
+			self.advance = self.advance_vectorized
+
+	def advance(self):
+		raise NotImplementedError
+
+	def advance_scalar(self):
+		up, upp = self.u, self.up
+		x, y, t = self.x, self.y, self.t
+		Ix, Iy = self.Ix, self.Iy
+		hx, hy = self.dt**2/self.dx**2, self.dt**2/self.dy**2
+		b, q, f = self.b, self.q, self.f
+		dt = self.dt
+		dt2 = dt**2
+		
+		n = self.n
+		u = np.zeros(up.shape)
+		for i in Ix:
+			for j in Iy:
+				# Updating the internal mesh points
+				qij = q[i,j]
+				qpi = (q[i+1,j] + qij)/2.
+				qmi = (q[i-1,j] + qij)/2.
+				qpj = (q[i,j+1] + qij)/2.
+				qmj = (q[i,j-1] + qij)/2.
+				uij = up[i,j]
+
+				u_x = qpi*(up[i+1,j] - uij) + qmi*(up[i-1,j] - uij)
+				u_y = qpj*(up[i,j+1] - uij) + qmj*(up[i,j-1] - uij)
+
+
+				u[i,j] = 2*uij + (b*dt/2. - 1)*upp[i,j] \
+				               + hx*u_x + hy*u_y + dt2*f(x[i],y[j],t[n])
+
+				u[i,j] /= (1 + b*dt/2.)
+
+				
+		u = self.update_ghost_cells(u, Ix, Iy)
+		
+		self.up = up
+		self.u = u
+		self.n = n+1
+
+	def advance_vectorized(self):
+		up, upp = self.u, self.up
+		x, y, t = self.x, self.y, self.t
+		hx, hy = self.dt**2/self.dx**2, self.dt**2/self.dy**2
+		b, q, f = self.b, self.q, self.f
+		dt = self.dt
+		dt2 = dt**2
+		n = self.n
+		u = np.zeros(up.shape)
+
+		# Updating the internal mesh points
+		qij = q[1:-1,1:-1]
+		qpi = (q[2:,1:-1] + qij)/2.
+		qmi = (q[:-2,1:-1] + qij)/2.
+		qpj = (q[1:-1,2:] + qij)/2.
+		qmj = (q[1:-1,:-2] + qij)/2.
+		uij = up[1:-1,1:-1]
+
+		u_x = qpi*(up[2:,1:-1] - uij) + qmi*(up[:-2,1:-1] - uij)
+		u_y = qpj*(up[1:-1,2:] - uij) + qmj*(up[1:-1,:-2] - uij)
+
+		u[1:-1,1:-1] = 2*uij + (b*dt/2. - 1)*upp[1:-1,1:-1] \
+		               + hx*u_x + hy*u_y + dt2*f(x[1:-1],y[1:-1],t[n])
+
+		u[1:-1,1:-1] /= (1 + b*dt/2.)
+
+		u = self.update_ghost_cells(u, self.Ix, self.Iy)
+
+		self.up = up
+		self.u = u
+		self.n = n + 1
 
 	def solve(self):
-		n = int(ceil(T/dt))
+		T, dt = self.T, self.dt
+		n = int(np.ceil(T/dt))
 		for i in range(n):
-			advance()
+			self.advance()
+
+	def get_mesh(self):
+		return self.x[1:-1], self.y[1:-1]
+
+	def get_solution(self):
+		return self.u[1:-1,1:-1]
 
 
+class WavePlotter:
+	def __init__(self, solver):
+		self.solver = solver
+		self.X, self.Y = np.meshgrid(*solver.get_mesh())
 
-I = lambda x, y: x
-V = 0
-q = 2
-Lx = 5
-Ly = 5
-Nx = 21
-Ny = 21
-dt = 0.01
-T = 1
-test = Solver(I, V, q, Lx, Ly, Nx, Ny, dt, T, f=None)
+	def plot_solution(self, show=True, save=False, stride=[1,1], zlim=None):
+		X, Y, solver = self.X, self.Y, self.solver
+		u = solver.get_solution()
 
-import matplotlib.pyplot as plt
-import os
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+		ax.plot_wireframe(X, Y, u.T, rstride=stride[0], cstride=stride[1])
+		ax.set_xlabel(r'$x$', fontsize=22)
+		ax.set_ylabel(r'$y$', fontsize=22)
+		ax.set_zlabel(r'$u$', fontsize=22)
+		ax.set_xlim(0, solver.Lx)
+		ax.set_ylim(0, solver.Ly)
+		if zlim:
+			ax.set_zlim(0, zlim)
+		if show:
+			plt.show()
+		if save:
+			plt.savefig("tmp/%s%04d.png" % (save, solver.n))
+		plt.close()
 
-plt.pcolor(test.u.T)
-plt.colorbar()
+	def solve_and_plot(self, stride=[1,1], show=False, save=False, zlim=None):
+		X, Y, solver = self.X, self.Y, self.solver
 
-while test.n < 20:
-	test.advance()
-	plt.pcolor(test.u.T)
-	plt.colorbar()
-	plt.savefig("tmp/fig%s.png" % str(test.n))
-	print test.n
-
-os.system("mencoder 'mf://*.png' -mf type=png:fps=20 -ovc lavc -lavcopts vcodec=wmv2 -oac copy -o test.mpg")
-
-'''
-if savemovie:
-		os.system("mencoder 'mf://_tmp*.png' -mf type=png:fps=20
-		 -ovc lavc -lavcopts vcodec=wmv2 -oac copy -o %s.mpg" % mvname)
-'''
+		print "Solving and plotting problem."
+		while solver.n < solver.Nt:
+			self.plot_solution(show=show, save=save, zlim=zlim, stride=stride)
+			self.solver.advance()
+			print "Finished with step %d of %d." % (solver.n, solver.Nt)
