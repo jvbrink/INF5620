@@ -1,0 +1,13 @@
+Hei Jonas og Emilie!
+
+ * Fine resultater ang. diskretisering i rapporten, men hvor er 
+   seksjonen som inneholder trunaction error analysis og 
+   en del analytisk arbeid rundt testene?
+
+ * Det er en del som mangler, spesielt testene, men også implementering
+   av subsea hill, pluss to oppgaver helt til slutt (parallellisering,
+   migration etc.). Dere har jobbet to sammen også, da ble det krevd mer.
+
+ * Ellers så ser ting fint ut, god kode osv.
+
+Godkjenner, men dere burde prøve å ferdigstille opplegget. Dog, det er opp til dere :)
