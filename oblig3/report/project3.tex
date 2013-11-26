@@ -85,7 +85,7 @@
 % Navn og tittel
 %
 \author{Emilie Fjørner \\[-0.4cm] \texttt{e.s.fjorner@fys.uio.no} \\[0.2cm] Jonas van den Brink \\[-0.4cm] \texttt{j.v.d.brink@fys.uio.no}}
-\title{INF5620 --- Project 3 \\ A nonlinear diffusion equation}
+\title{INF5620 --- Project 3 \\ Nonlinear diffusion equation}
 
 
 \begin{document}
@@ -95,33 +95,68 @@
 
 \section*{Description}
 
+
 In this problem we solve a nonlinear diffusion equation model using the finite element method.
 
 \clearpage
 
 \section*{The Partial Differential Equation}
 
-We will be solving a nonlinear diffusion model, formulated as a PDE problem it has the following form:
+Formulated as a PDE problem, the nonlinear diffusion model we will be solving has the following form:
+
 \begin{align} 
 \rho u_t &= \nabla \cdot (\alpha(u)\nabla u) + f(\bt{x},t) \mbox{ on } \Omega, \\[0.2cm]
 \frac{\p u}{\p n} &= 0 \hspace{3.6cm} \mbox{ on } \delta \Omega.
 \end{align}
-We are solving for the scalar field $u$. The coefficient $\rho$ is a real constant and $\alpha$ is a known function of the solution $u$, making the equation nonlinear. The domain $\Omega$ has boundary $\delta\Omega$ and we see that we have a Neumann boundary condition for the entire boundary.
+
+We are solving for the scalar field $u$. The coefficient $\rho$ is a known, real constant and $\alpha$ is a known function of the solution $u$, making the equation 
+nonlinear. The domain $\Omega$ has the boundary $\delta\Omega$ and we see that we have a Neumann boundary condition for the entire boundary.
 
 We are solving the equation on the domain $\Omega$, 
 
 \subsection*{a) Variational Form}
-We now sample our PDE at the time $t_n$ and approximate the time-derivative using a forward difference
-$$\bigg[\rho D^+_t u = \nabla \cdot (\alpha(u)\nabla u) + f(\bt{x},t)\bigg]^n,$$
-giving the equation
-$$\frac{\rho}{\Delta t}\big(u^{n+1} - u^n\big) = \nabla \cdot (\alpha(u^n)\nabla u^n) + f(\bt{x},t).$$
 
-We now reformulate the PDE as a variational problem, by multiplying by a test function $v$, and integrating over the entire spatial domain
-$$\frac{\rho}{\Delta t}\bigg(\int_\Omega u^{n+1}v \ \d x + \int_{\Omega} u^n v \ \d x\bigg) = \int_\Omega \nabla \cdot (\alpha(u^n)\nabla u^n) v \ \d x + \int_\Omega f(\bt{x}, t)v \ \d x.$$
-We now perform integration by parts on the integral containing the double derivative of the trial function $u$:
-$$\int_\Omega \nabla \cdot (\alpha(u^n)\nabla u^n) \ \d x = \int_{\delta \Omega} \alpha(u^n) \frac{\p u^n}{\p n} v \ \d s - \int_\Omega \alpha(u^n)\nabla u \cdot \nabla v \ \d x.$$
-From our Neumann boundary condition, we know that the directional derivative, $\p u^n /\p n$, vanishes on the entire boundary for all times $t_n$, so the integral over the domain does not contribute. The variational form can then be written
-$$\frac{\rho}{\Delta t}\bigg(\int_\Omega u^{n+1}v \ \d x + \int_{\Omega} u^n v \ \d x\bigg) = -\int_\Omega \alpha(u^n)\nabla u^n \cdot \nabla v \ \d x + \int_\Omega f(\bt{x}, t)v \ \d x.$$
+We sample our PDE at the time $t_n$ and use the Crank-Nicolson scheme to approximate the time-derivative. This gives us the following implicit scheme
+
+$$ \rho \frac{u^{n+1}-u^n}{\Delta t} = \frac{1}{2} \bigg(\nabla \cdot (\alpha(u^{n+1})\nabla u^{n+1}) + f^{n+1} + \nabla \cdot (\alpha(u^n)\nabla u^n) + f^n\bigg)$$.
+
+We want to reformulate the PDE as a variational problem. To acheive this we multiply by a test function $v$, and integrate over the entire spatial domain $\Omega$
+
+\begin{align*}
+\frac{2\rho}{\Delta t} \bigg(\int_\Omega u^{n+1} v \ \d x - \int_\Omega u^n v\  \d x \bigg) &= \int_\Omega\nabla \cdot(\alpha(u^{n+1})\nabla u^{n+1})v\ \d x \ + \int_\Omega f^{n+1}v\ \d x \\
+& + \int_\Omega\nabla\cdot(\alpha(u^n)\nabla u^n)v\ \d x \ + \int_\Omega f^nv\ \d x
+\end{align*}
+
+Using integration by parts on the integrals containing the double derivative of the trial function $u$, and our Neumann boundary condition this becomes
+
+\begin{align*}
+\frac{2\rho}{\Delta t} \bigg(\int_\Omega u^{n+1} v \ \d x - \int_\Omega u^n v\  \d x \bigg) &= - \int_\Omega \alpha(u^{n+1})\nabla u^{n+1}\cdot\nabla v\ \d x \ + \int_\Omega f^{n+1}v\ \d x \\
+& - \int_\Omega \alpha(u^n)\nabla u^n\cdot\nabla v\ \d x \ + \int_\Omega f^nv\ \d x
+\end{align*}
+
+\subsection*{b) and c) Picard iteration}
+
+We now have a nonlinear system to solve, and we want to use a Picard iteration method to reformulate this as a linear problem. Renaming the solution to be found, 
+$u^{n+1}$  as simply $u$, and the solution at the previous time step $u_p$, we use $u_p$ as our initial guess for the Picard iteration. Our formulation becomes 
+
+\begin{align*}
+\frac{2\rho}{\Delta t} \bigg(\int_\Omega u^{k+1} v \ \d x - \int_\Omega u_p v\  \d x \bigg) &= \int_\Omega\nabla \cdot(\alpha(u^{k})\nabla u^{k+1})v\ \d x \ + \int_\Omega f v\ \d x \\
+& + \int_\Omega\nabla\cdot(\alpha(u_p)\nabla u_p)v\ \d x \ + \int_\Omega f_pv\ \d x
+\end{align*}
+
+with $k^0=u_p$.
+
+We restrict this Picard iteration to a single iteration. This is equivalent to simply letting the argument of the $\alpha$-function be $u_p$ in both of the integrals 
+where it appears. 
+
+\begin{align*}
+\frac{2\rho}{\Delta t} \bigg(\int_\Omega u v \ \d x - \int_\Omega u_p v\  \d x \bigg) &= \int_\Omega\nabla \cdot(\alpha(u_p)\nabla u)v\ \d x \ + \int_\Omega f v\ \d x \\
+& + \int_\Omega\nabla\cdot(\alpha(u_p)\nabla u_p)v\ \d x \ + \int_\Omega f_pv\ \d x
+\end{align*}
+
+
+\subsection*{d) Convergence rate study}
+
 
 
 
