@@ -1,43 +1,49 @@
 from dolfin import *
 import numpy as np
-from sympy import *
 from diffusion import DiffusionProblem, DiffusionSolver
 
 class TestProblem(DiffusionProblem):
+    def __init__(self, rho):
+        self.rho = rho 
+
     def initial_condition(self):
         return Constant(0.0)
 
     def alpha(self):
-        def a(u):
-                return 1 + u**2
-        return a
+        return lambda u: 1 + u**2
         
     def source_term(self):
-        return Expression('-rho*pow(x[0],3)/3.0+rho*pow(x[0],2)/2.0+8*pow(t,3)*pow(x[0],7)/9.0-28*pow(t,3)*pow(x[0],6)/9.0+7*pow(t,3)*pow(x[0],5)/2.0-5*pow(t,3)*pow(x[0],4)/4.0+2*t*x[0]-t', rho=1.5, t=0.0)
-        
+        code = '''
+        - rho*pow(x[0],3)/3.0
+        + rho*pow(x[0],2)/2.0
+        + 8*pow(t,3)*pow(x[0],7)/9.0
+        - 28*pow(t,3)*pow(x[0],6)/9.0
+        + 7*pow(t,3)*pow(x[0],5)/2.0
+        - 5*pow(t,3)*pow(x[0],4)/4.0
+        + 2*t*x[0]-t
+        '''
+        return Expression(code, rho=self.rho, t=0.0)
 
-class TestSolver(DiffusionSolver):
-    def plot_arguments(self):
-        args = DiffusionSolver.plot_arguments(self)
-        args['mode'] = 'auto'
-        args['range_min'] = -1.
-        args['range_max'] = 1.
-        return args
+T = 0.1
+results = []
 
+for h in [0.5, 0.1, 0.05, 0.011, 0.005, 0.001]:
+    dt = np.sqrt(h)
+    r = int(1./dt)
+    
+    problem = TestProblem(rho=1.5)
+    solver = DiffusionSolver(problem, [r], dt=dt, deg=1)
+    solver.solve(T, plot_realtime=False)
 
-problem = TestProblem(rho=2.0)
-solver = TestSolver(problem, [10], dt=0.01, deg=1)
-T = 1.0
-solver.solve(T, plot_realtime=False)
+    u = solver.get_solution()
+    exact = Expression('t*x[0]*x[0]*(0.5 - x[0]/3.)', t=T)
+    u_e = project(exact, solver.V)
+    e = u_e.vector().array() - u.vector().array()
+    #E = np.sqrt(np.sum(e**2)/u.vector().array().size)
+    E = max(e**2)
 
+    results.append("h: %3.1e \t\t E: %6.3e \t\t E/h: %6.3e" % (h, E, E/h))
 
-#     u = solver.up
-#     exact_solution = Expression('exp(-pi*pi*t)*cos(pi*x[0])', t=T)
-#     u_e = project(exact_solution, solver.V)
+print "Error for different h"
+print "\n".join(results)
 
-#     e = u_e.vector().array() - u.vector().array()
-#     E = max(e**2)
-
-#     results.append("h: %3.1e \t\t E: %6.3e" % (h, E))
-
-# print "\n".join(results)

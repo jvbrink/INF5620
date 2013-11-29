@@ -20,7 +20,6 @@ class TestSolver(DiffusionSolver):
         args['range_max'] = 1.
         return args
 
-
 problem = TestProblem(rho=2.0)
 
 T = 3.0
@@ -33,7 +32,7 @@ for h in [1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]:
     solver = TestSolver(problem, [r, r], dt=dt, deg=1)
     solver.solve(T, plot_realtime=False)
 
-    u = solver.up
+    u = solver.get_solution()
     exact_solution = Expression('exp(-pi*pi*t)*cos(pi*x[0])', t=T)
     u_e = project(exact_solution, solver.V)
 
@@ -43,36 +42,6 @@ for h in [1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]:
 
     results.append("h: %3.1e \t\t E: %6.3e \t\t E/h: %6.3e" % (h, E, E/h))
 
-
-dtp = 1
-solver = TestSolver(problem, [10, 10], dt=dtp, deg=1)
-solver.solve(T, plot_realtime=False)
-u = solver.up
-exact_solution = Expression('exp(-pi*pi*t)*cos(pi*x[0])', t=T)
-u_e = project(exact_solution, solver.V)
-e = u_e.vector().array() - u.vector().array()
-Ep = max(e**2)
-
-convergence = []
-for dt in [1e-1, 1e-2, 1e-3]:
-    solver = TestSolver(problem, [10, 10], dt=dt, deg=1)
-    solver.solve(T, plot_realtime=False)
-
-    u = solver.up
-    e = u_e.vector().array() - u.vector().array()
-    #E = max(e**2)
-    E = np.sqrt(np.sum(e**2)/u.vector().array().size)
-
-    r = ln(Ep/E)/ln(dtp/dt)
-    Ep = E
-    dtp = dt
-    
-    convergence.append("dt: %3.1e \t\t r: %2.2e" % (dt, r))
-
-
 print "Error for different h"
 print "\n".join(results)
 
-print "Testing convergence rate for dt"
-print "\n".join(convergence)
-    

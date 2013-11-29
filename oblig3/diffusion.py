@@ -12,13 +12,14 @@ class DiffusionProblem:
         # Returns a Dolfin Expression-object
         raise NotImplementedError
 
-    def f(self):
+    def source_term(self):
         # Returns a Dolfin Expression-object
         raise NotImplementedError
     
     def alpha(self, u):
         # Returns a Dolfin Expression-object
         raise NotImplementedError
+
 
 
 class DiffusionSolver:
@@ -51,6 +52,7 @@ class DiffusionSolver:
         self.L = (2*rho/dt*up*v - alpha(up)*inner(grad(up), grad(v)) \
                     + self.f*v + self.fp*v)*dx
         
+        self.mesh = mesh
         self.up = up
         self.v = v
         self.V = V
@@ -80,6 +82,8 @@ class DiffusionSolver:
             if plot_realtime:
                 self.plot_solution()
 
+    def get_solution(self):
+        return self.up
 
     def plot_solution(self):
         """Plot current solution"""

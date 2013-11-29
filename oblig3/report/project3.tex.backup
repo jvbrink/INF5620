@@ -96,7 +96,7 @@
 \section*{Description}
 
 
-In this problem we solve a nonlinear diffusion equation model. We sample the given partial differential equation in time and approximate the time derivative using the Crank-Nicolson method, this leads to an implicit numerical scheme. For each time step we have to solve a non-linear spatial PDE, which is done using the finite element method through FEniCS. The PDE is linearized using the Picard iteration method. A solver is implemented and verified using two test problems. Finally the solver is used to look at the diffusion of a Gaussian function.
+In this problem we solve a nonlinear diffusion equation model using the finite element method.
 
 \clearpage
 
@@ -164,7 +164,7 @@ From the results we see that as $h$ is lowered, the error is decreasing quite sm
 \subsection*{e) Method of manufactured solutions}
 We now solve for the exact solution
 $$u_e(x,t) = t x^2 (\frac{1}{2}-\frac{x}{3}),$$
-with $\alpha = 1+u^2$ on the one-dimensional domain $\Omega = [0,1]$. Through the use of sympy we compute the corresponding source term that yields the given exact solution. We solve with the resulting source term and find the error of the computed solution by comparing with the known exact solution at the times $T=0.1$, $T=0.5$, $T=1.0$ again we solve for different values of $h$. The results are shown in table \ref{table:convergence2}. We see that the error decreases with $h$ as expected, but also that it growns significantly with time. For the value $h=0.01$ we seem to get a very good error, though no clear reason is apparent.
+with $\alpha = 1+u^2$ on the one-dimensional domain $\Omega = [0,1]$. Through the use of sympy we compute the corresponding source term that yields the given exact solution. We solve with the resulting source term and find the error of the computed solution by comparing with the known exact solution at the times $T=0.1$ $T=0.5$, $T=1.0$ again we solve for different values of $h$.
 
 
 
@@ -180,56 +180,11 @@ with $\alpha = 1+u^2$ on the one-dimensional domain $\Omega = [0,1]$. Through th
  5.0e-03  & 4.624e-07     & 9.248e-05 \\ \hline
  1.0e-03  & 1.862e-08     & 1.862e-05 \\ 
 \end{tabular}
-\caption{Measure of error as $h$ is decreased in exercise d). \label{table:convergence1}}
+\caption{Measure of error as $h$ is decreased. \label{table:convergence1}}
 \end{table}
 
-\begin{table}
-\centering
-\begin{tabular}{c | c | c | c}
-$h$ & $E(T=0.1)$ & $E(T=0.5)$ & $E(T=1.0)$ \\ \hline
-5.0e-01  &  1.054e-02 &  1.294e-03 &  6.815e-03 \\ \hline
-1.0e-01  &  1.300e-03 &  4.936e-04 &  2.020e-03 \\ \hline
-5.0e-02  &  4.247e-04 &  8.161e-04 &  3.999e-04 \\ \hline
-1.0e-02  &  1.552e-13 &  3.785e-10 &  8.154e-09 \\ \hline
-5.0e-03  &  4.767e-05 &  1.202e-04 &  1.037e-04 \\ \hline
-1.0e-03  &  1.950e-05 &  1.000e-06 &  4.065e-06 \\  
-\end{tabular}
-\caption{Measure of error at different times as $h$ is decreased in exercise e) \label{table:convergence2}}
-\end{table}
-
-\clearpage
-
-\subsection*{f) Sources of numerical error}
-There are mainly three sources of numerical errors in the FEniCS program. There is an error proportional to $\Delta t^2$ as a result of our use of the Crank-Nicolson finite difference approximation in time. There is an error resulting from the finite element method used to solve the spatial PDE problem for each time step, this error will be different for different problems, but for our two test cases it wass proportional to $\Delta x^2 + \Delta y^2$. Finally we have an error due to linearizing our PDE through the use of Picard iterations, this error decreases with an increasing number of Picard iterations $k$, but as we have limited ourselves to a single iteration per time step the error should contribute significantly. The error due to linearizing the PDE should decrease as the temporal resolution is refined.
 
 
-\subsection*{h) Diffusion of a Gaussian function}
-We now use the implemented solver to solve the nonlinear diffusion equation for the initial condition
-$$I(x,y) = {\rm exp}\bigg[\frac{1}{2\sigma^2}\big(x^2 + y^2\big)\bigg], \qquad (x,y)\in\Omega = [0,1]\times[0,1],$$
-with $\alpha(u) = 1 + \beta u^2$, for some constant $\beta$. The resulting field at some time steps are shown in figure \ref{fig:gaussian_diff}
-
-\begin{figure}[thb]
-\centering
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{../dolfin_plot_0}
-(a)
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{../dolfin_plot_4}
-(b)
-\end{minipage} 
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{../dolfin_plot_6}
-(c)
-\end{minipage}
-\caption{Diffusion of a Gaussian function. (a) At the time $t=0$, the field $u(x,y)$ is a perfect Gaussian function, though only one quartile is shown. (b) At some later time, the Gaussian function has started to diffuse out. (c) After a relatively long time, the field has become nearly uniform.}
-\label{fig:gaussian_diff}
-\end{figure}
 
 
 
